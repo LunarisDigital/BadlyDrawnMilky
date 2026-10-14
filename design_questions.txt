@@ -1,0 +1,150 @@
+BADLYDRAWNMILKY — WEBSITE DESIGN DISCOVERY QUESTIONS
+=====================================================
+
+A list of questions to help nail down the creative direction, scope,
+tone, and technical requirements of the BadlyDrawnMilky website
+before any design work begins.
+
+
+-----------------------------------------------------
+1. VOICE, PERSPECTIVE & BRAND IDENTITY
+-----------------------------------------------------
+
+1.1  Whose voice should the site speak in?
+     a) First-person, from Milky's perspective
+        e.g. "Hi, I'm Milky. I bark, I nap, I get badly drawn."
+     b) Third-person, framing Milky as the subject of the work
+        e.g. "Milky is a dog. BadlyDrawnMilky is the animated series
+        about him, drawn by [creator]."
+     c) A blend — Milky narrates, but creator credits appear elsewhere
+        (about page, footer, etc.)
+
+1.2  Is the website primarily for:
+     a) Milky (the character/IP)
+     b) The creator/artist behind the animations
+     c) Both, with a clear hierarchy
+
+1.3  How "polished" should the website feel relative to the
+     intentionally low-effort animation style?
+     a) Match the rough, scribbled aesthetic
+     b) Contrast it — clean, modern site as a backdrop for messy art
+     c) Somewhere in between (polished structure, scribbled accents)
+
+1.4  Tone of voice for copy: silly, sincere, deadpan, chaotic,
+     wholesome, sarcastic — which adjectives feel right, and which
+     are off-limits?
+
+1.5  Are there any existing brand guidelines, color palettes, fonts,
+     or logo files we should be working from?
+
+
+-----------------------------------------------------
+2. PURPOSE & GOALS OF THE WEBSITE
+-----------------------------------------------------
+
+2.1  What is the #1 thing you want the website to do?
+     a) Be a "home base" / link hub for all social platforms
+     b) Sell merchandise
+     c) Showcase a portfolio/archive of animations
+     d) Pitch to brands, agents, or media partners
+     e) Something else
+
+2.2  If a visitor only does ONE thing on the site, what should it be?
+     (Watch a video? Buy a sticker? Follow on Instagram? Contact for collaboration?)
+
+-----------------------------------------------------
+3. CONTENT & SECTIONS
+-----------------------------------------------------
+
+3.1  Which of these sections do you want, and in what priority?
+     [ ] Home / landing
+     [ ] About Milky (the dog)
+     [ ] About the creator
+     [ ] Animation archive / gallery
+     [ ] Latest / featured video
+     [ ] Shop / merch
+     [ ] Press & features
+     [ ] Brand partnerships / "work with us"
+     [ ] Contact
+     [ ] Newsletter signup
+     [ ] Blog / behind-the-scenes
+     [ ] Fan art submissions
+     [ ] FAQ
+     [ ] Other: __________
+
+3.2  Should there be a "sound library" — clips of the real Milky's
+     barks/snorts/sounds — as its own feature?
+
+3.3  Do you want a section that explains the *process* (how a real
+     bark becomes an animation)?
+
+3.4  Is there a story/origin section? How much of the creator's
+     personal story should be public?
+
+-----------------------------------------------------
+4. SOCIAL & COMMUNITY INTEGRATION
+-----------------------------------------------------
+
+4.1  Which social platforms must be linked prominently?
+     (Instagram, TikTok, YouTube, X/Twitter, Threads, Bluesky,
+     Discord, etc.)
+
+4.2  Should the latest posts from any of those platforms auto-embed
+     on the site, or just be linked out?
+
+4.3  Is there a community space (Discord, subreddit, etc.) that
+     should be highlighted?
+
+4.4  Do you want a fan submission feature (fan art, voice clips,
+     drawings of Milky)? Moderated or open?
+
+-----------------------------------------------------
+6. VISUAL & INTERACTION DESIGN
+-----------------------------------------------------
+
+6.1  Should the site lean heavily into animation (lots of motion,
+     wiggling drawings, audio cues), or stay mostly static for
+     performance/accessibility?
+
+6.2  Are there "signature" interactions you'd love to see?
+     (e.g. cursor turns into a paw, Milky barks on hover, hand-drawn
+     scribbles draw themselves as you scroll)
+
+6.3  Should the site play sound by default, on hover, on click, or
+     never (sound off unless user opts in)?
+
+6.4  Any websites / brands you love the look or feel of, that we
+     should treat as references?
+
+6.5  Any websites / styles you specifically dislike?
+
+6.6  Light mode, dark mode, or both? Any specific palette in mind?
+
+6.7  Typography preference — hand-lettered, system fonts, a specific
+     typeface, or a mix?
+
+6.8  Logo — does one exist? Does it need refinement or a new mark?
+
+-----------------------------------------------------
+7. THE BIG-PICTURE QUESTIONS
+-----------------------------------------------------
+
+7.1  In one sentence, how would you describe BadlyDrawnMilky to
+     someone who's never heard of it?
+
+7.2  In one word, how should a visitor feel when they leave the
+     website?
+
+7.3  What would make you look at the finished site and say "yes,
+     that's exactly right"?
+
+7.4  What would make you look at it and say "no, that's not Milky"?
+
+7.5  Where do you see BadlyDrawnMilky in 2-3 years, and should the
+     website be designed to grow with that vision (TV show, book,
+     plushie line, etc.) or stay focused on what it is today?
+
+
+-----------------------------------------------------
+END OF QUESTIONS
+-----------------------------------------------------

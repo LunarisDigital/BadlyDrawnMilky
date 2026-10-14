@@ -1,0 +1,296 @@
+BadlyDrawnMilky — Site Improvement Suggestions
+================================================
+Generated 2026-09-08 by reviewing index.html / css/style.css / js/main.js,
+plus a live pass in Chrome at desktop width, and the project's own planning
+files (homepage-plan.txt, Home Content Summary.txt, memory notes).
+
+HOW TO READ THIS FILE
+----------------------
+- Each item is tagged [DESKTOP], [MOBILE], or [BOTH].
+- Items under "VISUAL / LAYOUT ISSUES FOUND" list the problem AND a
+  suggested solution, per your request (e.g. the section 5 overlap).
+- I could not force a real narrow (phone-width) browser window in this
+  session — the automation tool's resize request was silently ignored and
+  stayed locked at ~1920px wide (a known limitation in this environment).
+  So mobile items below come from reading the CSS media queries and the
+  project's own past real-device bug reports, NOT from an actual phone
+  screenshot this round. Treat mobile items as "worth checking on your own
+  phone first" rather than 100% confirmed.
+- Desktop items WERE checked in a live, real browser tab.
+
+
+===================================================
+1. VISUAL / LAYOUT ISSUES FOUND (with solutions)
+===================================================
+
+1.1 [BOTH — but you specifically flagged this one] Section 5 (the dark
+    "candle room", id="section-4" in the code) — crew art overlapping the
+    text.
+    What I found: once the candle is lit, three character canvases
+    (Milky/Baby/Princess celebrating) are large enough that their
+    invisible bounding boxes genuinely overlap the "Milky's world keeps
+    growing" text block — I measured this directly (Princess's canvas box
+    alone covers about 60% of the text block's area). HOWEVER, the code
+    already has a fix for this dated today: the text has a higher
+    z-index (6) than the candle/crew rig (5), so the text always paints
+    on top and should not visually disappear behind anyone.
+    STATUS: Already fixed in the code you have right now — I verified in
+    a live browser that the text stays visible and legible on top even
+    when the crew's boxes are forced to overlap it.
+    REMAINING RISK / what to double check live: even though the text
+    can't be "covered" anymore, it can still look visually busy/crowded
+    if a character's bright colors sit directly behind the letters
+    (lower contrast even while technically in front). I could not render
+    the actual character video in this automated session to check that
+    last bit — please look at this moment live on your own screen right
+    after lighting the candle. If it still looks cluttered (not covered,
+    just crowded), the fix is either:
+      a) shrink the crew's width clamp() values in style.css
+         (.s4-crew-milky / .s4-crew-baby / .s4-crew-princess, ~line 1888),
+      b) nudge the crew's "bottom" positioning down / further from the
+         text, or
+      c) make the text fade out slightly earlier once warm (there's
+         already a .s4-intro-text.is-ending opacity-0 rule built for
+         exactly this — it may just need its trigger point tuned).
+
+1.2 [DESKTOP] The Best-of gallery's "grab" cursor doesn't actually let you
+    drag it.
+    What I found: `.bocr-viewport` (the horizontal photo-reel window in
+    section 3) has `cursor: grab` in style.css, which visually promises
+    "click and drag to pan" — but there is no mousedown/mousemove drag
+    handler anywhere in main.js. Clicking and dragging with the mouse
+    does nothing; the only ways to actually pan it are the mouse wheel
+    (redirected to horizontal scroll) or grabbing the thin scrollbar
+    underneath it.
+    SOLUTION: either implement a real click-and-drag handler (mousedown ->
+    track pointer delta -> viewport.scrollLeft), which is what the cursor
+    is promising, or change the cursor back to default/pointer so it
+    doesn't advertise an interaction that isn't there.
+
+1.3 [DESKTOP] Scrolling over the gallery can feel like the page "got
+    stuck".
+    What I found: `#bocr-viewport` intercepts every mouse-wheel scroll
+    while the cursor is over it and redirects it to horizontal panning
+    (js/main.js, ~line 379), fully blocking the page from scrolling
+    vertically for as long as the cursor sits there. The gallery window
+    can be up to 520px tall, so this is a fairly large "dead zone" for
+    normal scrolling.
+    SOLUTION: only intercept the wheel event when the gallery hasn't
+    already reached its horizontal start/end — once fully panned in a
+    direction, let further wheel input fall through to normal page
+    scroll. This is the standard fix for this exact pattern.
+
+1.4 [BOTH] Footer social links go nowhere, and "#" makes them worse than
+    empty.
+    What I found: Instagram / TikTok / Shop in the footer are literally
+    `href="#"`. Clicking any of them jumps the page straight back to the
+    very top (not "does nothing" — an actual, jarring scroll-to-top),
+    which is worse than a plain unstyled placeholder.
+    SOLUTION: swap in the real URLs before launch. If they're not ready
+    yet, use `href="javascript:void(0)"` or just remove the `<a>` (keep
+    the text as a plain `<span>`) so a curious clicker isn't yanked to
+    the top of the page.
+
+1.5 [BOTH — performance, not layout, but very concrete] Both footer-grass
+    images always download, even though only one is ever shown.
+    What I found: `footer-grass-pc.png` (952 KB) and
+    `footer-grass-phone.png` (904 KB) are two plain `<img>` tags, toggled
+    with CSS `display:none` per breakpoint. Browsers still download an
+    `<img>`'s file even when it's `display:none` — so every visitor,
+    desktop or mobile, downloads BOTH images (~1.8 MB) for a graphic only
+    one of them will ever see.
+    SOLUTION: you already solved this exact problem correctly elsewhere
+    on the page — `.m2-platform` / `.m2-platform-mobile` use a real
+    `<picture><source media="(max-width:700px)">` element, which only
+    downloads the version that's actually needed. Do the same swap here.
+
+1.6 [MOBILE — needs a real-device check] Section 5 is the newest, least-
+    tested part of the site on phones.
+    Per your own project notes, the party-favor crew reveal in section 5
+    was built and tested today mostly on a wide desktop browser; mobile
+    layout for it was explicitly flagged as "unverified" because the
+    tooling available couldn't force a real phone-width viewport (same
+    limitation I hit this session). Given how tight the desktop spacing
+    already is there (see 1.1), this is the single highest-risk spot for
+    a real overlap/crowding problem on an actual phone and should be the
+    first thing you check live on your own device.
+
+
+===================================================
+2. PERFORMANCE
+===================================================
+
+2.1 [BOTH] 12 of the site's 14 <video> tags use preload="auto".
+    This tells the browser to start downloading essentially the whole
+    site's worth of video (~17 MB across assets/web) immediately on page
+    load, before the visitor has scrolled anywhere. On a phone on
+    cellular data, that's a slow, possibly expensive first impression for
+    content most people won't even reach (section 5/6 videos loading
+    before the hero has finished loading).
+    SOLUTION: only preload="auto" the hero's own clip(s) (what's visible
+    immediately). Set everything below the fold to preload="metadata" or
+    preload="none", and instead trigger `.load()` on each video from the
+    same IntersectionObserver pattern you already use for scroll-reveal
+    text — start loading a section's video shortly before it scrolls into
+    view, not all at once on page load.
+
+2.2 [MOBILE] Large PNGs with no responsive sizing.
+    Several images (hero-flowers.png 504 KB, cta-crew.png 484 KB,
+    cta-you.png 444 KB, m2-mobile-teddybear.png 392 KB, bocr-roof.png
+    340 KB, candle-only.png 324 KB) are served as one fixed file to every
+    device. A phone showing them at a fraction of their source resolution
+    still downloads the full desktop-size file.
+    SOLUTION: export a smaller @1x mobile version of the heaviest ones (or
+    a `srcset` with a couple of sizes) — same technique already used for
+    the m2-platform mobile crop, just applied to file weight instead of
+    composition.
+
+2.3 [BOTH] There are unused, orphaned video/image assets already sitting
+    in assets/web/ that add clutter (not page weight, since unreferenced
+    files are never fetched by a browser): confetti.mp4, cta-crew.png,
+    cta-you.png, cta-glow.mp4, mtc-intro.mp4, mtc-loop.mp4, mtc-exit.mp4,
+    stats-loop.mp4, m3-bg.jpg. None of these appear anywhere in
+    index.html or main.js. Several look like they were prepped for the
+    still-unbuilt "Brand Path CTA banner" (item 6) — worth checking
+    whether that section should get built using them, or whether they can
+    be deleted to keep the assets folder honest about what's actually
+    live.
+
+
+===================================================
+3. ACCESSIBILITY
+===================================================
+
+3.1 [BOTH] The candle-lighting interaction (section 5's one real "hidden
+    game" moment) is mouse/touch-click only — no keyboard support.
+    You already did this correctly for the M2 grooming items (nail
+    clippers/polish/toothbrush have role="button" tabindex="0" and a
+    keydown handler for Enter/Space, js/main.js ~line 338). The candle
+    image has none of that, so a keyboard-only visitor can never light it
+    or see the celebration payoff — the site's single most delightful
+    easter egg is invisible to them.
+    SOLUTION: copy the exact same pattern used for the grooming items
+    onto #candle-only (tabindex="0", role="button", an aria-label like
+    "Light the candle", and a keydown handler that fires the same logic
+    as the click handler).
+
+3.2 [BOTH] No favicon, no meta description, no Open Graph/Twitter card
+    tags. Right now the browser tab shows a generic icon, and any link
+    shared to Instagram/Discord/iMessage/etc. will show no preview image
+    and no description text — a real missed opportunity for a visually-
+    driven brand like this one where a good link preview card could
+    itself be a selling point.
+    SOLUTION: add a <link rel="icon">, a <meta name="description">, and
+    og:title/og:description/og:image (og:image could just be one of the
+    existing hero or logo assets).
+
+
+===================================================
+4. CONTENT / COPY — you already wrote better lines than what's live
+===================================================
+Your own "Home Content Summary.txt" has copy and structure that hasn't
+made it into the actual page yet — flagging these as opportunities, not
+bugs, since I don't know if you deliberately changed direction:
+
+4.1 [BOTH] The Hero's punchier planned line — "I snort, I nap, I cause
+    problems." — isn't used anywhere on the live site. What's live instead
+    ("A badly drawn dog with a belly button who snorts too much.") was
+    actually written for the Brand Intro section per your own plan, and
+    is now doing double duty as the Hero's subtitle too, while the Brand
+    Intro section only carries its second half ("Started as one silly
+    animation, never really stopped."). This may have been an intentional
+    call in an earlier session — but if not, the Hero currently reads a
+    little flatter than the line you originally wrote for it.
+
+4.2 [BOTH] Section 5's stats are still tone-only placeholder copy
+    ("Milky's world keeps growing") with no real numbers, but your own
+    planning doc already has punchy example copy ready to adapt:
+    "187K+ humans (and their dogs) follow this chaos.", "1.6M views on an
+    average video. We don't know how either.", "1 in 6 posts goes viral.
+    Milky remains unbothered." Even placeholder-but-funny beats
+    placeholder-but-vague, if you're not ready to drop in real numbers
+    yet.
+
+4.3 [BOTH] "Meet the Crew" (section 3/4 in the code) was planned to have
+    a per-character link — "meet milky" / "meet baby" / "meet princess" —
+    and the Best-of gallery clips were planned to each link out to their
+    original post. Neither exists yet; right now Milky/Baby/Princess are
+    ambient animations with no click-through, and the gallery is one
+    static wide image rather than individually-linked clips. Worth
+    deciding if that interactivity is still wanted before calling this
+    section finished.
+
+4.4 [BOTH] Section 6 (Brand Path CTA banner — "Brand or artist? Let's
+    make something silly together" / "work with Milky") has no markup at
+    all yet, and the footer is still explicitly labeled "Placeholder
+    footer content" in the copyright line. Both are known-incomplete per
+    your own homepage-plan.txt, just flagging so they don't get missed.
+
+4.5 [BOTH — small] README.md still describes the OLD hero design (a
+    scroll-jacking "intent-driven" state machine with forward/backward
+    scrubbing) from before the August reset. The current site doesn't do
+    that anymore — it's a normal scrolling page with scroll-triggered
+    reveals. Not user-facing, but worth a rewrite so a future session (or
+    collaborator) doesn't get misled by it the way I almost did.
+
+
+===================================================
+5. DESKTOP-ONLY NOTES
+===================================================
+
+5.1 The M2 "table scene" grooming-item cluster (nail clippers/polish/
+    toothbrush + teddy bear) and the section 5 candle/crew scene are both
+    positioned with hand-picked percentage values that, per your own
+    project notes, were tuned mostly against mobile-width screenshots and
+    "haven't been screenshot-checked at a real desktop width." I did view
+    section 5 live at a real ~1920px-wide desktop window this session
+    (see 1.1) — worth also eyeballing the M2 table scene at a genuinely
+    wide monitor (1920px+) and see if the items still read as a coherent
+    group rather than spreading too far apart.
+
+5.2 Consider a persistent (or hero-only) light-touch navigation aid.
+    The page is a single very long scroll (roughly 9,000px of content).
+    There's no way to jump between sections except the very bottom
+    footer's Home/About/Gallery links, and no on-page indicator of how
+    much is left to scroll. A small "scroll to explore" cue on the hero
+    (your own Home Content Summary.txt even specs "no button — wiggly
+    scroll arrow only" for the hero) and/or a minimal scroll-progress
+    indicator would help orient first-time visitors on a page this long.
+
+
+===================================================
+6. MOBILE-ONLY NOTES (from code review — please verify on a real phone)
+===================================================
+
+6.1 Re-check section 5 first (see 1.6 above) — it's the newest, least
+    mobile-tested part of the site.
+
+6.2 The project's own history shows this page has repeatedly needed
+    multiple real-device correction rounds for every new mobile layout
+    (the M2 table scene alone went through 7+ rounds of "looked fine in
+    theory, broke on an actual screenshot" fixes — overlapping props,
+    wrong units, wrong stacking order). That's not a criticism of the
+    current state, just a pattern worth planning for: budget a real-
+    device pass as a standard last step any time a new visual element is
+    added, rather than trusting percentage math alone.
+
+6.3 Touch targets: the M2 grooming items and candle are your main
+    interactive elements. Worth a quick real-thumb tap test to confirm
+    each hit target feels comfortably sized and none of them sit close
+    enough together to cause mis-taps (the M2 props were previously
+    reported colliding into each other before being fixed — good to
+    re-confirm they still have clear separation after any later change).
+
+
+===================================================
+QUICK PRIORITY PICK (if you only fix a few things)
+===================================================
+1. Footer link hrefs (1.4) — 5-minute fix, currently actively broken.
+2. Video preload strategy (2.1) — biggest single perf win, especially on
+   mobile data.
+3. Footer-grass double-download (1.5) — easy win, same pattern you
+   already used elsewhere on the page.
+4. Real-device check of section 5 (1.1 / 1.6) — highest-risk area, and
+   the one you specifically flagged.
+5. Candle keyboard accessibility (3.1) — small fix, meaningfully improves
+   who can experience the site's best moment.

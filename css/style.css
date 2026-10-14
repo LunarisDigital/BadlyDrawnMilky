@@ -1,0 +1,4422 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Guards against a hairline gap sometimes visible between two full-bleed
+   sections on mobile (reported: a thin line at the section-3/section-4
+   boundary, only "sometimes" — consistent with sub-pixel rasterization,
+   not a real layout gap: getBoundingClientRect() on the actual elements
+   here measures ~0, but each section's own fractional-vh height can
+   independently round to a different physical pixel at paint time,
+   leaving a 1-device-pixel sliver where neither section's background
+   paints and the page's own transparent <body> shows through instead.
+   Nudging each section 1px into the next guarantees a small overlap
+   instead, so no rounding combination can ever expose a gap — the
+   overlap itself is imperceptible (a shared edge pixel, not a visible
+   seam), unlike the gap it prevents. */
+.hero,
+.section-2-placeholder,
+.section-3,
+.section-4,
+.site-footer {
+  margin-bottom: -1px;
+}
+
+/* Shared "empty room" dark-purple tokens — used by both the backing
+   behind the river's drip gaps (.bocr-river-wrap, end of section-3) and
+   section-4 itself, so the two stay in sync by construction: the exact
+   same horizontal gradient, colors and stops, painted on both. That's
+   what keeps the seam between them invisible — if either side ever needs
+   retuning, change it here once rather than in two places that then have
+   to be kept matching by hand. */
+:root {
+  --room-purple-edge: #0c0815;
+  --room-purple-mid: #2b1f45;
+  /* The "lit" color the room fades to once the candle's flame goes out
+     (see the candle-ignite block in main.js) — same peachy cream as
+     section-2's own resting color (--s2-color, set in main.js once its
+     intro clip finishes) so the room reads as catching the same warm
+     light rather than an unrelated new color. */
+  --room-warm: #fdedcb;
+}
+
+body {
+  font-family: 'Fredoka', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 500;
+}
+
+/* Fredoka's own weights read noticeably rounder/thicker than a system
+   sans at the same numeric weight — 700 for headings (vs. the browser
+   default bold, which is also 700 but looks thinner in most system
+   fonts) is enough to read as "cartoonish" without needing a separate
+   display face. */
+h1, h2, h3 {
+  font-weight: 700;
+}
+
+/* Permanent top nav bar (see index.html's #site-header) — an opaque-ish
+   cream bar rather than a transparent overlay so it stays legible over
+   every section's own background (hero's sky, section-4's dark room),
+   not just the one it happened to be designed against. z-index:100 is
+   far above every other stacking context on the page (the highest
+   elsewhere is 11, .bocr-plaque) so nothing can ever paint over it. */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  /* Thin, near-token vertical padding on purpose — the bar's own
+     thickness comes from the logo clip's height (.site-header-logo
+     below), not from padding around it, so it stays a tall video in a
+     barely-padded bar rather than a tall video AND generous padding
+     stacking into an oversized bar (the original 96px-tall logo + this
+     same thin padding read as "too big, blocking too much" — cut down
+     to a 56px-tall logo below to fix that). */
+  padding: 0.3rem clamp(1rem, 2.08vw, 2.5rem);
+  /* 2026-09-14: "the nav bar has a very different color from the Milky
+     logo" — was `rgba(255, 250, 240, 0.9)` + `backdrop-filter: blur(8px)`.
+     .site-header-logo relies on mix-blend-mode:multiply (below) to drop
+     its own baked-in pure-white (255,255,255) background out against
+     whatever's behind it — multiply(white, X) = X exactly, so in theory
+     that trick is immune to whatever color sits behind it. But at only 90%
+     opacity, a blurred sliver of the ACTUAL page content behind this fixed
+     header (which varies a lot across this page — hero sky, section-4's
+     near-black room) was bleeding through the bar's own flat color, and
+     mix-blend-mode support on <video> elements specifically is a known
+     unreliable spot across browsers/GPUs (a <video>'s frames are often
+     composited via a separate hardware overlay layer that bypasses normal
+     CSS blend-mode compositing entirely) — so on a device where the blend
+     doesn't apply, the logo shows its own raw opaque white rectangle
+     while the bar around it is doing its semi-transparent blurred-dark-
+     content thing, exactly the stark seam reported/screenshotted. Making
+     this fully opaque removes the failure mode at its root regardless of
+     whether the blend mode itself fires correctly: the bar is now a flat,
+     uniform cream everywhere it sits, and even in the worst case (blend
+     mode silently not applying at all) the logo's own opaque white is
+     only a few RGB units off from this bar's own color — imperceptible —
+     instead of clashing with whatever dark section happens to be
+     scrolled underneath. backdrop-filter dropped too since it has zero
+     visible effect once there's nothing to see through anymore. Already
+     matches this rule's own stated intent above ("opaque-ish... stays
+     legible over every background") more faithfully than the old 90%
+     value did. */
+  background: #fffaf0;
+  box-shadow: 0 2px 10px rgba(60, 40, 20, 0.1);
+}
+
+.site-header-brand {
+  display: flex;
+  align-items: center;
+}
+
+/* Uses logo-animation-header.mp4, not the original logo-animation.mp4 —
+   a cropped + contrast-boosted re-encode made specifically for this
+   header slot (see the ffmpeg recipe below). The original source frame
+   was 960x540 with the actual drawn logo occupying only its middle
+   ~53% (vertically) — mostly empty white padding baked in around it —
+   and its ink line color measured a washed-out mid-grey (~rgb(178,175,
+   169) at its very darkest, confirmed by scanning every frame; nowhere
+   near black, unlike the static logo.png's true rgb(0,0,0) ink). Cropped
+   tight to the actual content's real bounding box (measured the same
+   way: scanned all 49 frames for non-white pixels, x:130-807/y:118-407
+   of the 960x540 source, +26px margin on each side for anti-aliasing
+   safety) so the same CSS height now shows a much bigger logo, and
+   re-graded with a levels/contrast stretch (ffmpeg colorlevels,
+   input black point ~0.647 i.e. ~165/255, since nothing in the source
+   was ever darker than that) so the ink reads as a proper dark line
+   instead of grey:
+     ffmpeg -i logo-animation.mp4 -vf "crop=730:340:104:92,
+       colorlevels=rimin=0.647:gimin=0.647:bimin=0.647:
+       rimax=0.961:gimax=0.961:bimax=0.961"
+       -c:v libx264 -crf 18 -preset slow -an -movflags +faststart
+       logo-animation-header.mp4
+   The clip's own background is still plain white — mix-blend-mode:
+   multiply drops that to transparent against the header's cream
+   background (anything white there stays the header's own color; only
+   the now-dark ink/color shows), the same trick this exact asset used
+   pre-August-reset. height, not width, drives the size (auto width
+   keeps the crop's own ~2.15:1 aspect — flatter/wider than the original
+   960x540's 16:9 now that the empty vertical padding is gone), so it
+   grows to fill the bar's own height edge-to-edge with the header's
+   near-zero padding above. */
+.site-header-logo {
+  height: clamp(40px, 2.92vw, 56px);
+  width: auto;
+  /* Without this, `width: auto` only knows the real ~2.15:1 aspect ratio
+     once the <video> has actually decoded a frame (readyState >= 1) — until
+     then (this project's video-decode gotcha means that can be a real,
+     non-instant delay) a <video> with no known dimensions falls back to
+     the HTML spec's own generic replaced-element default, 300x150 (2:1),
+     which at 40-56px tall renders ~300px wide instead of ~86-120px. Found
+     while testing mobile: that 300px placeholder width was wide enough to
+     push .site-header-nav's own 4 links off the right edge of a phone
+     screen entirely (confirmed via a live rect check — the video's
+     `videoWidth` was still 0 at the time). `aspect-ratio` is a pure CSS
+     layout hint, independent of whether the video has decoded anything
+     yet, so this sizes the box correctly from the very first paint
+     regardless of load timing — the real fix, rather than trying to claw
+     back space from the nav for a logo that's temporarily/wrongly huge. */
+  aspect-ratio: 2.15 / 1;
+  display: block;
+  mix-blend-mode: multiply;
+}
+
+.site-header-nav {
+  display: flex;
+  gap: clamp(1rem, 1.67vw, 2rem);
+}
+
+.site-header-nav a {
+  color: #5b4636;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: clamp(0.85rem, 0.83vw, 1rem);
+  transition: color 0.2s ease;
+}
+
+.site-header-nav a:hover {
+  color: #df760a;
+}
+
+/* Lets a footer/nav anchor jump (href="#section-N") land with the
+   section's own top clear of the fixed header instead of tucked under
+   it — scroll-margin-top offsets the browser's own scroll-into-view
+   target, not layout, so it doesn't add any visible gap otherwise. */
+.hero,
+.section-2-placeholder,
+.section-3,
+.section-4 {
+  scroll-margin-top: 76px;
+}
+
+/* Shared fade+rise-into-place reveal, used by the section copy blocks added
+   across section-2/3/4 (see IntersectionObserver in main.js that adds
+   is-revealed once each scrolls into view) — same idea as .m2-reveal above
+   the M2 stage, generalized so any section's text can opt in with one class
+   instead of a bespoke rule per block. */
+.reveal-text {
+  opacity: 0;
+  transform: translateY(1.2rem);
+  transition: opacity 0.9s ease, transform 0.9s ease;
+}
+
+.reveal-text.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hero {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  min-height: 560px;
+  overflow: hidden;
+  background: linear-gradient(#a9def2 0%, #c9ecf9 70%, #dff4fb 100%);
+}
+
+/* solid ground color behind the grass image, so its fade-to-transparent
+   bottom edge blends into a flat color instead of showing sky through it */
+.hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 10vh;
+  background: #89b55c;
+  z-index: 1;
+}
+
+.hero-sun {
+  position: absolute;
+  top: 4%;
+  left: 3%;
+  width: clamp(90px, 11.98vw, 230px);
+  z-index: 2;
+}
+
+.hero-text {
+  position: absolute;
+  top: 19%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  text-align: center;
+  color: #5b4636;
+  padding: 0 1.5rem;
+}
+
+.hero-text h1 {
+  font-size: clamp(2rem, 2.92vw, 3.5rem);
+  margin-bottom: 0.5rem;
+}
+
+.hero-text p {
+  font-size: clamp(1rem, 1.04vw, 1.25rem);
+  max-width: 32rem;
+  margin: 0 auto;
+}
+
+.hero-grass {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 18vh;
+  min-height: 130px;
+  object-fit: cover;
+  object-position: top;
+  z-index: 2;
+  /* fade the artwork's own bottom edge into transparency so its texture
+     dissolves gradually into the flat fill color behind it, instead of
+     cutting off sharply */
+  -webkit-mask-image: linear-gradient(to bottom, white 0%, white 45%, transparent 95%);
+  mask-image: linear-gradient(to bottom, white 0%, white 45%, transparent 95%);
+}
+
+.hero-flowers {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, 1400px);
+  z-index: 3;
+}
+
+.hero-milky {
+  position: absolute;
+  bottom: 2vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: clamp(240px, 23.96vw, 460px);
+  z-index: 4;
+  pointer-events: none;
+  /* Hidden until the start-transition clip hands off to it (see the hero
+     block in main.js) — starts fully drawn (`autoplay` removed from its
+     source <video>) but invisible, so there's no flash of the idle pose
+     underneath Milky actually falling in. Fades in (rather than snapping)
+     so it crossfades against .hero-milky-start fading out at the same
+     moment below — a soft overlap hides the fact the two clips don't frame
+     him at quite the same scale/position, instead of a hard cut making
+     that mismatch obvious. */
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.hero-milky.is-visible {
+  opacity: 1;
+}
+
+/* "1 Hero- M1 start transition.mp4" is a full, uncropped 1920x1080 frame —
+   Milky falls from a tiny dot near the top down to his landing pose, with a
+   yellow landing-poof effect that grows large enough to reach this frame's
+   own edges late in the clip. A first attempt drew a tight square `crop`
+   around just his landing spot (to reuse .hero-milky's small box exactly)
+   but that poof shape exceeds even a generous crop window in its biggest
+   frames, so it got hard-clipped by the crop rectangle's own edges — a
+   flat-color shape sliced off in a straight line reads as "stuck in a box"
+   rather than fading into the black background like everything else. A
+   second attempt dropped the crop and just eyeballed a `clamp()` width/
+   bottom instead, leaning on the opacity crossfade to hide the mismatch —
+   but the actual on-screen SIZE Milky ends up at (a fixed vw-based box
+   drawing his ~20%-of-frame-width silhouette) landed nowhere near
+   .hero-milky's own ~72%-of-canvas silhouette size, and the crossfade
+   couldn't hide a scale jump that large, still reading as "very weird."
+   `width`/`left`/`top`/`transform` here are now just a no-JS fallback —
+   positionHeroStart() in main.js overrides all four at runtime, computed
+   directly off .hero-milky's own actual rendered size (so it tracks that
+   element's clamp() exactly instead of maintaining a second, separately-
+   tuned clamp() that can only ever coincidentally match it) using both
+   clips' pixel-measured character-bbox fractions to solve an exact
+   width/position where his on-screen size and landing point both line up
+   with .hero-milky's — see that function's own comment for the numbers. */
+.hero-milky-start {
+  position: absolute;
+  bottom: 2vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: clamp(600px, 62.5vw, 1200px);
+  aspect-ratio: 1920 / 1080;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.35s ease;
+}
+
+.hero-milky-start.is-done {
+  opacity: 0;
+}
+
+/* Mobile tuning for the hero (section 1). .hero-name is inline on desktop
+   (part of the natural "Hi, I'm Milky!" wrap), forced onto its own line
+   below 700px so the heading breaks cleanly after "Hi," instead of
+   wrapping mid-phrase ("Hi, I'm" / "Milky!") the way the browser's default
+   wrap did at narrow widths. .hero-milky sizing switched from a vw-based
+   clamp (which, floored at 240px, still read as noticeably smaller than
+   section 2's Milky once compared side by side) to a vh-based one instead
+   — clamp(220px, 48vh, 380px), the same unit .m2-loop-canvas itself uses
+   (clamp(280px, 52vh, 620px)) — so the two land in the same visual size
+   range on a given phone rather than one being tuned off width and the
+   other off height.
+
+   2026-10-08: that pure-vh sizing broke the hero's own start-transition
+   crossfade (see positionHeroStart() in main.js) — the start clip's native
+   1920x1080 frame has Milky occupying only ~20% of its width, so matching
+   his on-screen LANDING size to .hero-milky's width forces the start
+   canvas to ~3.66x .hero-milky's own width (measured/solved in that
+   function's own comment). On desktop .hero-milky is vw-based, so this
+   ratio stays roughly proportional to the viewport (~0.9-1.3x it) across
+   window sizes. On mobile, vh-based sizing decoupled .hero-milky's width
+   from the viewport's own width entirely — on any typical phone (where
+   48vh already exceeds the 380px ceiling), .hero-milky sat permanently
+   pinned at 380px regardless of how narrow the screen was, so the start
+   canvas ballooned to ~1392px inside a ~390px-wide screen (a measured
+   ~3.5x overflow, confirmed via getBoundingClientRect() in a same-origin
+   mobile-viewport iframe test) — read as the intro clip's landing spot
+   (and its landing-poof effect, which pixel-scanning confirmed spans
+   ~93% of the full frame at its peak, so it can't be safely cropped
+   tighter — see the start clip's own crop-history comment) not lining up
+   with Milky's actual idle position. Fixed by adding a `vw` term via
+   `min()` so .hero-milky's mobile width also tracks viewport WIDTH, not
+   just height, capping how far that same ~3.66x multiplier can balloon on
+   a narrow phone — trades a smaller mobile Milky (floor/ceiling dropped
+   220/380 -> 190/300) for keeping the start-canvas overflow in a sane
+   ~2x-ish range instead of ~3.5x+. .hero-flowers is widened well past
+   100% (cropping past the viewport's own left/right edges, still
+   centered) so the flower clusters read as full-size plants rather than
+   shrinking down with the rest of the already-narrow image the way a
+   plain 100% width did. */
+@media (max-width: 700px) {
+  .hero-name {
+    display: block;
+  }
+
+  /* "move the words down a bit more" — nudged from the shared 19% top down
+     to 26% on mobile only, giving the heading/subline more clearance above
+     .hero-milky below without touching desktop's own positioning. */
+  .hero-text {
+    top: 26%;
+  }
+
+  .hero-milky {
+    width: clamp(190px, min(48vh, 54vw), 300px);
+    bottom: 1vh;
+  }
+
+  /* Same eyeballed-not-solved caveat as the desktop rule — scaled down to
+     roughly track .hero-milky's own mobile size/position above (now that
+     it's capped by width too, see that rule's own comment). */
+  .hero-milky-start {
+    width: clamp(700px, 198vw, 1100px);
+    bottom: 6vh;
+  }
+
+  .hero-flowers {
+    width: 220%;
+    bottom: -1vh;
+  }
+}
+
+/* --s2-color starts white and is switched to the M2 clip's cream by JS
+   once the intro animation finishes playing — used by the gradient below,
+   the buffer space, and the stage's own resting background, so they all
+   change together in sync rather than the cream showing up early. */
+.section-2-placeholder {
+  position: relative;
+  --s2-color: #ffffff;
+  background: var(--s2-color);
+  transition: background-color 0.8s ease;
+}
+
+/* Shortened from 90vh and bottom-aligned (was align-items: center), then
+   pulled down further with a negative margin-bottom — .m2-platform (the
+   first thing to visibly reveal inside .m2-stage) sits quite low within
+   that stage's own 100vh box, not right at its top edge, so even bottom-
+   aligning the text flush against the stage's top wasn't enough on its
+   own: measured live that the platform doesn't actually cross its own
+   reveal threshold until the stage has scrolled up a further ~150-250px
+   past that point, by which time the text (a fixed distance above the
+   stage in normal flow) had already scrolled fully off screen. The
+   negative margin-bottom pulls .m2-stage up so its still-empty top region
+   (nothing revealed there — Milky/the table/platform are all positioned
+   toward the stage's lower portion) visually sits *behind* the text
+   instead of after it — see z-index below for why the text stays legible
+   in that overlap instead of getting painted over. */
+.section-2-buffer {
+  height: 85vh;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 1.5vh;
+  margin-bottom: -22vh;
+  position: relative;
+  /* Higher than .m2-stage's own implicit z-index (auto/0) so the text
+     stays painted on top through the deliberate overlap above, rather
+     than .m2-stage's own opaque background (later in DOM order, which
+     would otherwise paint over it) covering it. */
+  z-index: 2;
+}
+
+/* Brand Intro copy (homepage-plan.txt item 2), continuing the hero's own
+   line ("A badly drawn dog with a belly button who snorts too much.") —
+   sits in the middle of the buffer's flat resting color rather than up in
+   the 22vh gradient band, so it never fights that color transition. Color
+   matches the hero's own warm brown (.hero-text) so the two read as one
+   voice telling the same story, not a new section starting a new tone. */
+.s2-intro-text {
+  text-align: center;
+  color: #5b4636;
+  padding: 0 1.5rem;
+  max-width: 40rem;
+}
+
+/* Nudged down a bit via transform (not the buffer's own padding-bottom/
+   flex-end math above — that's load-bearing for the M2 stage overlap
+   timing the comment above it explains, so this stays isolated from it:
+   transform doesn't affect layout, just paints the text shifted). Set on
+   .is-revealed specifically, not the bare .s2-intro-text rule above — this
+   element also carries .reveal-text, whose own .is-revealed rule
+   (style.css, near the top) resets transform to translateY(0) once
+   revealed and would otherwise wipe this out the instant the reveal
+   animation finishes (same specificity, but that rule comes first in the
+   file, so this one — appearing later — wins the tie). */
+.s2-intro-text.is-revealed {
+  /* Nudged from 2rem to 6rem, then per a follow-up ("still too high, move
+     it down even more") to 11rem. Safe to keep pushing via this transform
+     (rather than touching the buffer's own flex/padding math, which is
+     load-bearing for the M2 stage overlap timing — see the comment above)
+     since this element's z-index:2 keeps it painted above the stage
+     regardless of how far down it visually drifts into that overlap. */
+  transform: translateY(11rem);
+}
+
+.s2-intro-text p {
+  font-size: clamp(1.4rem, 2vw, 2.4rem);
+  line-height: 1.4;
+}
+
+/* Mobile: "words overlapped and covered by images" — confirmed real via a
+   same-origin iframe sized to an actual phone viewport (resize_window is
+   unreliable in this environment, per this project's own standing note;
+   the iframe trick sidesteps that since CSS media queries inside it
+   respond to the iframe's own rendered size) and live getBoundingClientRect
+   checks, not just a guess: at 1.4rem/11rem this text's own natural box
+   (390px-wide phone) already overlapped BOTH the nail-polish/clipper row
+   above it AND the teddy-bear/toothbrush row below it — a pre-existing
+   squeeze this desktop-only 2rem->11rem push (see .is-revealed above) made
+   worse by pushing an already-too-tall text block even further down into
+   it. The vertical gap between those two prop rows on a phone is only
+   ~100px; the text at its old mobile size (four wrapped lines at 1.4rem)
+   needed ~125px, so no transform value could clear both rows at once —
+   shrinking the text (1.0rem/1.3 line-height, ~83px tall) plus shrinking
+   the two lower props themselves (they were already shrunk once before,
+   see their own comments — the gap has apparently tightened further since)
+   is what actually fits everything with real margin on both sides now,
+   confirmed via the same iframe + live rects, not just recomputed by hand. */
+@media (max-width: 700px) {
+  .s2-intro-text.is-revealed {
+    transform: translateY(-1rem);
+  }
+
+  .s2-intro-text p {
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+}
+
+.m2-stage {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--s2-color);
+  transition: background-color 0.8s ease;
+}
+
+/* Milky's drawing/pop-in animation, keyed transparent in JS (see
+   startBlackKeyedCanvas in main.js) so only his ink and his (offline
+   flood-filled) white interior are opaque — the clip's own baked-in
+   background wipe is dropped entirely in favor of --s2-color below.
+   Because it's genuinely transparent everywhere but Milky himself, it can
+   sit above the table/platform/bear for the whole clip (including the
+   pop/drop moment) without ever blotting them out. His landing spot is
+   baked into the source footage itself at roughly 67% of this canvas's
+   own width (there's nothing else in frame to crop or redraw around,
+   since the background is already transparent) — translateX shifts the
+   whole canvas left so that spot lines up with .m2-loop-canvas's current
+   left: 22% resting position instead (swapped with .m2-table-items, then
+   nudged further left per a follow-up request). Re-tune this by the same
+   delta (new resting % minus 67%) if the resting spot moves again. */
+.m2-video-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: translateX(-45%);
+  z-index: 3;
+}
+
+/* Resting position on the table — the spot .m2-table-items used to occupy,
+   swapped per request (Milky and the table items traded places; the bear
+   stayed put), then nudged further left along with the items per a
+   follow-up request. Milky's own silhouette within this 700x700 clip
+   isn't centered in the canvas (he sits left-of-center, with his feet
+   well above the canvas's own bottom edge), so left/bottom here are tuned
+   against his actual on-screen silhouette, not the canvas box itself —
+   expect to nudge both again if the table's height changes. */
+.m2-loop-canvas {
+  position: absolute;
+  bottom: 1vh;
+  left: 22%;
+  transform: translateX(-50%);
+  width: clamp(280px, 52vh, 620px);
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.m2-loop-canvas.is-visible {
+  opacity: 1;
+}
+
+/* The room's floor/wall. Sits below the table items and the drawing/loop
+   canvases so Milky and the table stuff always read as in front of it.
+   Flipped horizontally, at full width so its flat top spans the screen
+   edge-to-edge with no gap on either side (the art's flat top only covers
+   part of its own width, which is why this can't be narrowed below 100%
+   — narrower just leaves blank space past the image's own right edge
+   instead of more floor).
+   m2-platform.png is a re-cropped slice of the source art (2- platform.png
+   in Seperate Assets), not the full thing — it was re-exported to trim the
+   tall blank margin above the corner wedge and most of the flat, featureless
+   run of tabletop in the middle, while keeping BOTH of the art's own ink
+   lines: the back seam near the top and, further down, the line marking the
+   table's front edge, which is what actually reads as a 3D edge rather
+   than a flat fill. Those two lines sit close to the top and bottom of
+   this crop respectively, with little slack between them and the image's
+   own edges — there isn't a further crop that makes this shorter without
+   cutting into one of the two lines again. To go shorter than that anyway
+   (half the natural height, per request), height is fixed below the
+   image's natural aspect ratio with object-fit: fill, squashing it
+   vertically rather than cropping — both lines stay visible across the
+   full width, just closer together, instead of losing one of them. Its
+   bottom edge is pinned to the stage's own bottom edge, which lines up
+   flush against section 3's roof band right below it, so the table and
+   the gallery frame read as one structure. */
+.m2-platform {
+  position: absolute;
+  /* Nudged down from the original bottom: 0 per request. This is close to
+     the max safe distance: .m2-stage clips overflow, and the platform's
+     own front-edge ink line sits at ~88.6% down the image (see the crop
+     comment above — that's the "little slack" being spent here), which
+     works out to about 1.68vw of margin below the line before this stage
+     starts clipping into the line itself. -1vw leaves ~0.7vw of that
+     margin unused; there isn't much further to push this before the line
+     starts visibly getting cut off. Table items/bear (.m2-table-items,
+     .m2-teddy-bear below) are positioned independently against the
+     stage's own bottom edge, not against this image, so they did NOT move
+     down with it — they may now read as sitting slightly above the table
+     surface rather than flush on it. This also very slightly breaks the
+     "flush against section 3's roof band" alignment the original crop
+     comment describes, though at this small an offset it's unlikely to
+     be visually obvious. */
+  bottom: -1vw;
+  left: 0;
+  width: 100%;
+  height: 14.7vw;
+  object-fit: fill;
+  transform: scaleX(-1);
+  z-index: 1;
+}
+
+/* Items and bear stay invisible until the viewer actually scrolls down far
+   enough to reach them (see the IntersectionObserver in main.js, which adds
+   .is-revealed to each independently the moment it comes into view) rather
+   than both being on screen the instant the stage appears — each fades and
+   rises slightly into place. m2-platform deliberately does NOT carry this
+   class (per request) — it's always visible with no transition, unlike
+   these two. */
+.m2-reveal {
+  opacity: 0;
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.m2-reveal.is-revealed {
+  opacity: 1;
+}
+
+.m2-desktop-nailclipper.m2-reveal,
+.m2-desktop-nailpolish.m2-reveal,
+.m2-desktop-toothbrush.m2-reveal,
+.m2-teddy-bear.m2-reveal {
+  transform: translateY(4vh);
+}
+
+.m2-desktop-nailclipper.m2-reveal.is-revealed,
+.m2-desktop-nailpolish.m2-reveal.is-revealed,
+.m2-desktop-toothbrush.m2-reveal.is-revealed,
+.m2-teddy-bear.m2-reveal.is-revealed {
+  transform: translateY(0);
+}
+
+/* Shared "ambient life" treatment for every loose grooming/toy prop in
+   this scene — mobile's floating props AND their desktop equivalents
+   below/the bear on both layouts — a grounding shadow, a slow idle
+   wobble, and (for the 3 actually interactive props, via .m2-tappable) a
+   hover glow + tap-triggered pop. One shared system instead of bespoke
+   rules per item so every prop reads as living in the same lit scene with
+   the same "weight" of motion, per request ("consistent in angle/
+   direction across all items").
+
+   Deliberately declared BEFORE every per-item rule below (.m2-desktop-*,
+   .m2-teddy-bear, the .m2-mobile-* rules further down) even though this
+   class is applied to those SAME elements — a per-item rule setting its
+   own --rest-rot/--idle-duration/--idle-delay has the exact same
+   specificity as this shared class's own defaults for those properties
+   (both are single-class selectors), and equal-specificity ties go to
+   whichever rule is LATER in the file. Declaring the shared defaults
+   first, so every per-item override comes after them in source order, is
+   what makes the override actually take — the reverse ordering was tried
+   first and silently produced --rest-rot:0deg / the shared timing on
+   every desktop item regardless of what its own rule said, confirmed via
+   getComputedStyle before spotting the ordering issue.
+
+   --rest-rot is each item's own static resting tilt (used to be a plain
+   `transform: rotate(Xdeg)` set directly on each item's own rule) — kept
+   as a custom property instead so ONE shared @keyframes block can wobble
+   around whatever resting angle each item already has, via
+   calc(var(--rest-rot) ± Ndeg), rather than needing a bespoke keyframes
+   block per item's own angle.
+
+   The wobble only starts once .is-revealed is added, not on .m2-groom-item
+   alone: a *running* CSS animation's own transform value always wins over
+   a plain declared/transitioned one regardless of selector specificity, so
+   starting it immediately would silently cancel this scene's existing
+   fade+rise scroll-reveal transition (.m2-reveal above) the instant it
+   began, before it ever got to visibly rise into place. Each item's own
+   --idle-delay below is deliberately >= that reveal transition's own 0.8s
+   duration so animation-fill-mode:none (the default) lets the transition
+   finish untouched first — the wobble only takes over `transform` once it
+   actually starts. Those same staggered per-item delays double as the
+   "don't move in sync, feel more organic" desync per request. */
+@keyframes m2-idle-item {
+  0%, 100% { transform: rotate(calc(var(--rest-rot, 0deg) - 2.5deg)); }
+  50%      { transform: rotate(calc(var(--rest-rot, 0deg) + 2.5deg)); }
+}
+
+/* One quick, non-looping "tapped" pop — played once via .is-tapped (added
+   then removed on a timer by main.js on click/tap), then the element
+   falls back to m2-idle-item above. transform + filter only, per request
+   (GPU-friendly, no layout properties touched). */
+@keyframes m2-tap-pop {
+  0%   { transform: rotate(var(--rest-rot, 0deg)) scale(1); }
+  35%  { transform: rotate(calc(var(--rest-rot, 0deg) - 9deg)) scale(1.16); }
+  65%  { transform: rotate(calc(var(--rest-rot, 0deg) + 6deg)) scale(1.06); }
+  100% { transform: rotate(var(--rest-rot, 0deg)) scale(1); }
+}
+
+.m2-groom-item {
+  --rest-rot: 0deg;
+  --idle-duration: 4.4s;
+  --idle-delay: 0.8s;
+  transform: rotate(var(--rest-rot));
+  /* Same low-opacity, small blur/offset, straight-down-and-slightly-back
+     angle on every single item — "consistent in angle/direction" per
+     request — so they all read as lit from the same source as the
+     platform itself, whether they're sitting on it or floating loose. */
+  filter: drop-shadow(0 0.9vh 0.6vh rgba(30, 20, 10, 0.28));
+  transition: filter 0.2s ease;
+}
+
+.m2-groom-item.is-revealed {
+  animation: m2-idle-item var(--idle-duration) ease-in-out var(--idle-delay) infinite;
+}
+
+/* Applied only to the 3 actual grooming items (nail polish, nail clipper,
+   toothbrush), never the bear — per request, only those are tappable. */
+.m2-tappable {
+  cursor: pointer;
+}
+
+.m2-tappable:hover,
+.m2-tappable:focus-visible {
+  filter: drop-shadow(0 0.9vh 0.6vh rgba(30, 20, 10, 0.28)) drop-shadow(0 0 0.8vh rgba(255, 214, 120, 0.65));
+}
+
+.m2-tappable:focus-visible {
+  outline: none;
+}
+
+/* Two classes beats .is-revealed's one-class animation rule on
+   specificity, so a tap always wins over the idle wobble while playing,
+   regardless of source order. */
+.m2-groom-item.is-tapped {
+  animation: m2-tap-pop 0.55s ease-out;
+}
+
+.m2-groom-cluster {
+  position: absolute;
+  bottom: 9vh;
+  left: 38%;
+  margin-left: calc(clamp(340px, 31.25vw, 600px) / -2);
+  width: clamp(340px, 31.25vw, 600px);
+  /* m2-table-items.png's own natural aspect ratio (965x683) — the 3 items
+     below are positioned as percentages of this box, so it needs a real
+     height of its own even though (unlike that single flat image) nothing
+     inside it is sized to fill it automatically. */
+  aspect-ratio: 965 / 683;
+  z-index: 2;
+}
+
+/* Individually-tappable desktop equivalents of the mobile floating props
+   (see .m2-mobile-nailpolish etc. below) — 2026-09-07: desktop used to
+   render these 3 as one merged image (m2-table-items.png, per the comment
+   this replaced) with no way to shadow/animate/tap them individually.
+   Reuses the exact same standalone PNGs the mobile layout already has
+   (m2-mobile-*.png) rather than re-cropping the merged desktop art — those
+   assets turned out to be clean, complete, individually-cropped exports of
+   the same drawings already, with the nail-polish wand and toothbrush
+   overlapping/touching in the merged file in a way that can't be split
+   cleanly along a rectangle. Positions below are eyeballed against the
+   merged image's own original layout (clipper bottom-left, polish center,
+   toothbrush right) rather than pixel-measured, since the goal is a
+   similar-reading cluster, not a reproduction. */
+.m2-desktop-nailclipper {
+  position: absolute;
+  left: 2%;
+  bottom: 4%;
+  width: 32%;
+  --rest-rot: -8deg;
+  --idle-duration: 3.9s;
+  --idle-delay: 0.9s;
+}
+
+.m2-desktop-nailpolish {
+  position: absolute;
+  left: 34%;
+  bottom: 20%;
+  width: 26%;
+  --rest-rot: 6deg;
+  --idle-duration: 4.3s;
+  --idle-delay: 1.4s;
+}
+
+.m2-desktop-toothbrush {
+  position: absolute;
+  left: 58%;
+  /* Dropped 14%->5% ("floating... move it down a bit"), then per a
+     follow-up ("move it down a lot more") to -18% — still reading as
+     elevated relative to the nail clipper/polish next to it (its own
+     lowest point, the handle tip, sat right at the table's back edge
+     while the other two items' resting points sit further forward/lower
+     on the sloped table surface, per a live screenshot comparison) even
+     after the first fix, so this round goes well past flush with the
+     cluster's own box (negative == below it) to actually land at the
+     same visual depth as its neighbors instead of just barely reaching
+     the back edge. */
+  bottom: -18%;
+  width: 40%;
+  --rest-rot: -14deg;
+  --idle-duration: 4.9s;
+  --idle-delay: 1.9s;
+}
+
+/* teddy bear, sitting on the table to the right — unmoved by the
+   Milky/items swap above (still clear of both their new spots) */
+.m2-teddy-bear {
+  position: absolute;
+  bottom: 1vh;
+  right: 25%;
+  width: clamp(190px, 17.71vw, 340px);
+  z-index: 2;
+  --rest-rot: -4deg;
+  --idle-duration: 5.6s;
+  --idle-delay: 2.4s;
+}
+
+/* Mobile-only floating props (nail polish/clippers, teddy bear, toothbrush
+   — see index.html), hidden on desktop by default. Desktop keeps the
+   items-on-the-table treatment above; these take over entirely on mobile
+   instead (see .m2-table-items/.m2-teddy-bear both going display:none in
+   the mobile media query below), each scattered loose to the left/right of
+   Milky's centered drop-in spot rather than resting on the table surface.
+   Sits behind Milky's own loop canvas (z-index 3) so he still reads as the
+   scene's focal point, same "still be at the center" as the desktop
+   version — these are just ambient clutter around him, not competing
+   props. Rotation is a static resting angle set directly on each element's
+   own single-class selector, not layered into .m2-reveal(.is-revealed) —
+   these don't carry .m2-table-items/.m2-teddy-bear, so none of that
+   higher-specificity two-class transform rule applies to them and there's
+   no clobbering risk to route around (unlike .m2-table-items itself,
+   below). */
+.m2-mobile-prop {
+  display: none;
+  position: absolute;
+  z-index: 2;
+}
+
+/* Mobile tuning for section 2's table scene. Milky goes back to dead
+   center (left: 50%, the original pre-swap resting spot — see
+   .m2-loop-canvas's own comment above the desktop rule) rather than the
+   desktop-only left-leaning spot, per request to keep him centered on
+   mobile specifically.
+
+   .m2-video-canvas also gets object-fit: contain here instead of the
+   desktop rule's cover — a real bug, not just a tuning choice: cover
+   crops the source video to fill whatever box it's in, and the amount it
+   crops depends on the box's own aspect ratio. .m2-stage is a short wide
+   box on desktop (little/no horizontal cropping, which is the aspect the
+   -17%/-45% translateX values were tuned against) but a tall narrow one
+   on mobile — cover crops HARD into the sides there, and at a mobile
+   aspect ratio the crop window no longer even contains the baked-in 67%
+   landing spot, pushing his drawn intro off past the edge of what's
+   visible entirely (this is the "starting animation isn't moved to the
+   center like Milky" report — it wasn't off-center, the crop had pushed
+   it out of frame). contain never crops — the full video, landing spot
+   included, always maps 1:1 onto the canvas's own width regardless of
+   the box's aspect ratio — so the existing translateX math (delta =
+   resting % minus the 67% baked-in landing spot) becomes valid again at
+   any aspect ratio, mobile included; letterboxing above/below is fine
+   since the canvas is transparent there anyway.
+
+   .m2-platform's height goes well past the desktop-equivalent ratio
+   (14.7vw) up to 55vw — per a follow-up "make the platform bigger"
+   request, since even the earlier 32vw bump still read as a thin strip
+   once you work out where its own front-edge ink line actually lands
+   (roughly 88.6% down the image, same crop as desktop — see .m2-platform
+   itself): at 32vw that line sits only ~10px above the stage's own
+   bottom edge, leaving items/bear's existing bottom offsets (tuned
+   against destkop's much taller platform) floating well above the
+   surface instead of resting on it. 55vw pushes that same line up to a
+   more reasonable ~55px, and .m2-table-items/.m2-teddy-bear's bottom
+   offsets below are cut way down to match (both were previously
+   floating high above a too-short table). The items also get a slight
+   rotation and a shift further left (given Milky himself is back in the
+   center here) so the two don't crowd each other, per a "rotate the
+   items a bit and move them around to better fit the page" request.
+   Both also get their own smaller width clamps — their desktop floors
+   (340px and 190px) are sized for the 26%+ of viewport width they
+   occupy on a wide screen, but on a ~390px phone those same floors eat
+   most of the table's own width. */
+@media (max-width: 700px) {
+  .m2-platform {
+    display: none;
+  }
+}
+
+/* Mobile-only replacement for .m2-platform above — see index.html's own
+   comment on the <img> tag for why this is a horizontal crop
+   (m2-platform-mobile.png) of the source art rather than either the
+   original hand-drawn asset's own box (whose wedge geometry doesn't
+   survive mobile's much taller platform height) or the CSS-drawn two-tone
+   box a previous round replaced it with (flat color bands with no real
+   linework/texture). object-fit: fill deliberately stretches the crop
+   rather than tiling or covering it — the crop has no perspective left in
+   it, just flat fill + straight horizontal ink lines, so a horizontal
+   stretch just extends those lines edge-to-edge with no visible seam or
+   distortion. Hidden on desktop by default (the existing hand-drawn
+   .m2-platform art is fine at its short desktop height and stays
+   untouched); shown + given its real height in the mobile media query
+   below. */
+.m2-platform-mobile {
+  display: none;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 68vw;
+  object-fit: fill;
+  z-index: 1;
+}
+
+/* Fades the platform image's own fill color into #ffd9a6 — section-3's
+   first gradient stop — so the color has already met section-3's by the
+   time you actually cross the boundary between them (see the comment on
+   the element in index.html for why this exists as its own layer rather
+   than baked into the art).
+
+   2026-09-07: was 17vw (a quarter of the platform's 68vw height) — the
+   crop's own bottom ink line (the front edge, the line that actually
+   reads as "3D") sits only ~8.2vw above the platform's own bottom edge,
+   so that taller band was painting the fade's own near-opaque color
+   directly over the line instead of below it, effectively erasing it (the
+   "bottom line seems cut off" report — confirmed by measuring the crop's
+   line position as a fraction of its own height, not by eyeballing).
+   m2-platform-mobile.png was also re-cropped taller (760px instead of
+   670px, extending down into the source art's own transparent margin
+   below that line, which exists precisely because the line IS the box's
+   drawn bottom edge — see the section-2-mobile memory) so there's real
+   headroom to fade into once this band only reaches into that margin. 6vw
+   stays comfortably under the ~8.2vw gap so it can't reach the line even
+   with the crop's own vertical proportions accounted for. */
+.m2-platform-mobile-fade {
+  display: none;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 6vw;
+  background: linear-gradient(to bottom, rgba(255, 217, 166, 0) 0%, #ffd9a6 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+@media (max-width: 700px) {
+  .m2-platform-mobile,
+  .m2-platform-mobile-fade {
+    display: block;
+  }
+
+  /* Milky's own silhouette within m2-loop-source.mp4 isn't centered in its
+     square 700x700 frame — pixel-measured his bbox center at ~38.4% across
+     (he sits left-of-center) — so centering the CANVAS BOX alone (left:50%
+     + the base rule's translateX(-50%)) still left HIM off-center on
+     screen. Per "move the dancing animation to the center of the page":
+     translateX overridden to -38.4% (his own measured center fraction)
+     instead of -50% (the box's geometric center) — shifting by exactly his
+     own off-center amount lands him dead center regardless of the canvas's
+     own clamp()'d width. */
+  .m2-loop-canvas {
+    left: 50%;
+    transform: translateX(-38.4%);
+    /* Grounding shadow, per "the dog and the bear feel like they're
+       floating in empty space" — filter:drop-shadow (not box-shadow)
+       specifically because it follows the canvas's actual drawn alpha
+       shape (Milky's black-keyed silhouette) rather than its full
+       rectangular box, which is mostly transparent padding around him. */
+    filter: drop-shadow(0 1.4vh 1vh rgba(30, 20, 10, 0.3));
+  }
+
+  /* 2026-09-07: Milky's drawn size during the intro (this canvas) vs. the
+     loop handoff (.m2-loop-canvas) turned out to be wildly mismatched —
+     pixel-measured his on-screen height at the handoff instant for both
+     clips (black-keyed bbox scan of each video's own relevant frame:
+     m2-start-baked.mp4's last frame vs. m2-loop-source.mp4's first frame):
+     he's only ~27% of the 1920x1080 intro frame's own height vs. ~56% of
+     the 700x700 loop frame's own height, and because this canvas was sized
+     to match the (much bigger, full-bleed) stage box while the loop canvas
+     is a modest clamp()'d box, that frame-fraction gap compounds into him
+     rendering roughly 4x taller in the loop than in the intro — the
+     "starting animation are way too small" report.
+
+     First attempt at this fix sized the canvas as a fixed % of the STAGE's
+     WIDTH (100vw-based) while the stage itself is 100vh tall — since
+     object-fit:contain's letterboxing depends on comparing the canvas
+     BOX's own aspect ratio against the video's, and the box's aspect here
+     is (some vw value)/(100vh), that ratio — and therefore where Milky
+     actually lands — silently changes with the device's own aspect ratio.
+     Confirmed this was a real bug, not just a theoretical one, once a
+     follow-up screenshot came from a visibly different phone aspect ratio
+     than the first one this was tuned against and the mismatch was still
+     there. Fixed properly this time by locking the canvas's own box to the
+     video's exact aspect ratio (aspect-ratio: 1920/1080, height: auto,
+     only width driven by CSS) — this makes object-fit:contain a no-op (box
+     and content share one aspect ratio, so there's never anything to
+     letterbox) and, combined with sizing that width in vh instead of vw
+     (matching .m2-loop-canvas's own vh-based `clamp(280px, 52vh, 620px)`
+     sizing convention above), keeps both canvases scaling together in
+     lockstep as device aspect ratio changes — unlike the old vw-based
+     width, which scaled independently of the loop canvas's vh-based one.
+     191.6vh solves `introHeightFrac * (191.6vh * 1080/1920) == loopHeightFrac
+     * 52vh` (i.e. matches Milky's actual on-screen height, in vh, to the
+     loop's own). translateX(-64.66%) uses the same "shift by the
+     character's own measured center fraction" trick as .m2-loop-canvas's
+     own translateX(-38.4%) above — landing him at dead-center (the same
+     spot the loop's own fix centers him at) needs no viewport-specific
+     assumption at all, since translate() percentages resolve against the
+     element's own box. bottom is solved the same way as left/translateX,
+     matching his measured vertical landing point to the loop's own
+     (distance-from-stage-bottom, in vh, worked out the same way the
+     horizontal target was) rather than guessed. Math-verified against both
+     clips' own measured bboxes, not yet eyeballed live (video still
+     doesn't decode in this project's browser automation — see the gotcha
+     in badlydrawnmilky-section4-crew memory) — check in a real browser and
+     nudge these values if the handoff still jumps. */
+  .m2-video-canvas {
+    top: auto;
+    right: auto;
+    bottom: 0;
+    left: 50%;
+    width: 191.6vh;
+    height: auto;
+    aspect-ratio: 1920 / 1080;
+    object-fit: contain;
+    transform: translateX(-64.66%);
+    /* Same grounding shadow as .m2-loop-canvas, same vh-based size (a
+       viewport-relative unit renders identically regardless of how much
+       bigger this canvas's own box is) — kept on both so there's no
+       "shadow suddenly appears" pop at the intro-to-loop handoff. */
+    filter: drop-shadow(0 1.4vh 1vh rgba(30, 20, 10, 0.3));
+  }
+
+  /* Replaced on mobile by the 4 floating .m2-mobile-prop items below —
+     see the comment on .m2-mobile-prop itself. */
+  .m2-groom-cluster,
+  .m2-teddy-bear {
+    display: none;
+  }
+
+  .m2-mobile-prop {
+    display: block;
+  }
+
+  /* 2026-09-07, second pass: shared left/right margins across all 4 props
+     (7% each side) instead of each picking its own independent inset —
+     nail polish and the teddy bear now sit on the same left edge, the
+     clipper and toothbrush on the same right edge, reading as one
+     deliberate two-column layout rather than scattered at random-feeling
+     offsets. 7% also gives the bear real breathing room off the screen
+     edge (was 2%, "add margin so the bear isn't flush against the screen
+     edge"). Vertical rhythm is 3 clearly separate bands — top pair, then
+     the bear, then the platform/toothbrush — each with enough gap to read
+     as intentional spacing rather than leftover space. */
+  .m2-mobile-nailpolish {
+    width: clamp(90px, 24vw, 150px);
+    left: 7%;
+    top: 6%;
+    --rest-rot: -16deg;
+    --idle-duration: 4.2s;
+    --idle-delay: 0.8s;
+  }
+
+  .m2-mobile-nailclipper {
+    width: clamp(100px, 28vw, 170px);
+    right: 7%;
+    top: 8%;
+    --rest-rot: 14deg;
+    --idle-duration: 3.8s;
+    --idle-delay: 1.3s;
+  }
+
+  /* 2026-09-07, third pass: shrunk and repositioned after a live mobile
+     screenshot showed it overlapping *both* the text above and Milky's own
+     drawn silhouette below at its previous size (clamp(115px, 32vw, 200px),
+     top:42%) — measured live (getBoundingClientRect on both the bear and
+     Milky's actual black-keyed pixels, not just their padded canvas boxes)
+     that the real gap between the text's own bottom edge and where Milky's
+     head starts is only ~196px at a typical mobile width, nowhere near
+     enough room for a 196px-tall bear plus any margin on either side.
+     Rather than push the bear somewhere else entirely, shrunk it to
+     actually fit that gap with real spacing on both sides — this is the
+     "reposition (and/or resize)" + "give it clear separation" fix. top:34%
+     was solved the same measured way (clear of .s2-intro-text above once
+     .section-2-buffer's margin-bottom eased back — see that rule's own
+     comment below — and clear of Milky's own head below). Rotated
+     clockwise (8deg, "rotate it slightly to the right" from an earlier
+     round). filter:drop-shadow (follows the art's own alpha shape, not its
+     rectangular box) is the "grounding shadow" fix from that same round. */
+  /* Shrunk again (80/25vw/140 -> 65/20vw/110) alongside .s2-intro-text's
+     own mobile shrink above — see that rule's comment for the measured
+     "only ~100px between the two prop rows" gap this and the toothbrush
+     both needed to fit inside. */
+  .m2-mobile-teddybear {
+    width: clamp(65px, 20vw, 110px);
+    left: 7%;
+    top: 34%;
+    --rest-rot: 8deg;
+    --idle-duration: 5.4s;
+    --idle-delay: 1.8s;
+  }
+
+  /* 2026-09-07, fifth pass: moved up off the platform entirely, to mirror
+     the teddy bear's own spot on the opposite side (per request) — same
+     top:34% row, right:7% instead of the bear's left:7% (the same
+     left/right column pairing already used for the top pair, nail
+     polish/clipper, above). Supersedes the previous "rest it on the
+     platform's top face" placement now that the platform itself is a
+     stretched image rather than a hand-tuned CSS slant with a known-good
+     resting band. */
+  /* Shrunk (100/28vw/170 -> 80/22vw/130) alongside the teddy bear above —
+     same "only ~100px between the two prop rows" fix, see .s2-intro-text's
+     own mobile comment. */
+  .m2-mobile-toothbrush {
+    width: clamp(105px, 29vw, 160px);
+    left: auto;
+    right: 7%;
+    bottom: auto;
+    top: 34%;
+    --rest-rot: 45deg;
+    --idle-duration: 4.8s;
+    --idle-delay: 2.3s;
+  }
+
+  /* 2026-09-07, third pass: eased back from -46vh to -30vh — that previous
+     round overcorrected. Measured live (getBoundingClientRect, not
+     eyeballed) that .s2-intro-text's own on-screen position is entirely
+     governed by this rule's `height` and completely unaffected by
+     margin-bottom — margin-bottom only moves .m2-stage (and everything
+     positioned inside it: the icon row, the bear, Milky) up or down
+     *underneath* the text. -46vh pulled the whole stage up far enough that
+     the bear — positioned well down inside that stage — ended up dragged
+     up into both the text above it and Milky below it (the icon row itself
+     never collided with anything, so it wasn't the icons' own top:% at
+     fault). -30vh measured live as a comfortable ~38px icon-to-text gap
+     instead. height unchanged — it wasn't implicated in either overlap,
+     only margin-bottom was. See .m2-mobile-teddybear's own comment above
+     for the other half of this fix (it also needed to shrink). */
+  .section-2-buffer {
+    height: 52vh;
+    margin-bottom: -30vh;
+  }
+}
+
+/* continues the grass green from the bottom of the hero, fading to white
+   until the M2 intro finishes playing, then switching to the same cream
+   the clip ends on (via --s2-color, see .section-2-placeholder above) so
+   the whole page reads as one continuous green-to-cream journey once
+   that color has actually appeared on screen */
+.section-2-placeholder::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 22vh;
+  background: linear-gradient(to bottom, #89b55c 0%, var(--s2-color) 100%);
+  transition: background 0.8s ease;
+  z-index: 0;
+}
+
+/* Section 3 (Best-of Content Reel): a soft morning-sky gradient — warm
+   sunrise gold at the very top (behind the cloud), cooling down through
+   pale sky blue, so the museum reads as sitting up in the clouds at dawn
+   rather than floating in a flat single color. Settles into a near-white
+   blue by the bottom so it doesn't fight the grass platforms/river's own
+   daylight colors further down the section. */
+.section-3 {
+  position: relative;
+  /* Deliberately NOT given a z-index. section-3's own background is part of
+     its own box, painted as step 1 of rendering that box — give the box
+     itself an elevated z-index (as an earlier version of this rule did) and
+     that background gets promoted right along with it, ending up in FRONT
+     of section 2's .m2-platform instead of behind it, since z-index:auto
+     boxes normally paint before (behind) any positive z-index box in the
+     same stacking context. Left at z-index:auto, section-3's own background
+     stays behind .m2-platform like a background should; only the specific
+     children that need to sit in front of it (.bocr-roof, .bocr-viewport)
+     carry their own z-index instead — see those rules below. */
+  background: linear-gradient(180deg, #ffd9a6 0%, #ffe8c9 12%, #cfeaf7 40%, #e8f6fb 70%, #f4fbfd 100%);
+  min-height: 170vh;
+  overflow: hidden;
+  /* Pulls the roof up into section 2's own bottom edge (the tail end of
+     .m2-platform) instead of butting flush against it, so the two read as
+     one continuous built structure with the roof overlapping the table
+     rather than two boxes stacked edge to edge. */
+  margin-top: -1vw;
+  /* Pushes the whole museum group (cloud, roof, viewport) — and everything
+     stacked below it, since they all just follow in normal flow — down
+     from that overlapped top edge. Gives .bocr-cloud (see below) headroom:
+     it's drawn bigger than the frame it sits behind, so its own top edge
+     needs real clearance above section 2's .m2-platform, not just above
+     this section's own overflow: hidden boundary — .m2-platform's box has
+     transparent space above its own drawn floor line, so without enough
+     clearance here the cloud pokes up through that gap into section 2's
+     table scene instead of staying inside section 3's morning sky. The
+     max(..., 150px) floor matters specifically on narrow/mobile screens:
+     .bocr-cloud is now sized off .bocr-viewport's height, which has its
+     own 260px floor via clamp() and barely shrinks with screen width, so
+     a pure vw value here shrinks away to nothing at mobile widths while
+     the cloud above it stays roughly the same size — the two go straight
+     back to overlapping without a fixed minimum backing up the vw value. */
+  padding-top: max(26vw, 170px);
+}
+
+/* Centers the whole museum group in the section (92% of the page — widened
+   from 75% per "make the museum bigger" — same width the frame itself used
+   to carry directly) and holds .bocr-cloud behind .bocr-frame — a separate
+   box from .bocr-frame itself specifically because .bocr-frame needs its
+   own overflow: hidden (for the roof's rotation fix) while the cloud needs
+   to spill out past the frame's edges on every side to actually read as a
+   frame around it; nesting the cloud inside .bocr-frame would clip it to
+   those same bounds. .bocr-cloud itself needs no separate change to grow
+   along with this — it's already sized off .bocr-frame's own live rendered
+   box at runtime (sizeCloudFrame() in main.js, see .bocr-cloud's own
+   comment below), so widening the museum widens the cloud around it for
+   free in the same pass. */
+.bocr-cloud-frame {
+  position: relative;
+  width: 92%;
+  margin: 0 auto 8vh auto;
+}
+
+/* Mobile: use the full section width instead of the 75% desktop inset,
+   per a "make it longer and wider, use the entire width if possible"
+   request. .bocr-roof/.bocr-frame are both width:100% of this element
+   with height:auto (aspect-locked to the art), so widening this alone
+   also makes the whole museum group taller in the same pass — "longer"
+   falls out of "wider" for free here, no separate height rule needed.
+   The corner cloud puffs (.bocr-cloud-border-*) are already positioned
+   as percentages of this same box, so they stay anchored at its corners
+   regardless of width; .bocr-cloud itself is sized off .bocr-frame's own
+   rendered box at runtime (sizeCloudFrame() in main.js), so it still
+   overhangs proportionally at this width — any of its overhang past the
+   viewport's own edges just gets clipped by .section-3's overflow:
+   hidden, which is fine per request ("keep the clouds on the bottom and
+   corner" — the visible remainder is exactly that). */
+@media (max-width: 700px) {
+  .bocr-cloud-frame {
+    width: 100%;
+  }
+}
+
+/* Best-of Content Reel caption (homepage-plan.txt item 3) — moved back
+   above the museum (per a follow-up request re-reversing the earlier
+   "move below" round — see index.html's own comment history if this
+   moves again), redesigned to match: bigger, unboxed italic type with a
+   short accent rule underneath instead of the old bordered/tinted
+   rectangle (which read as a plain, slightly-off tooltip box, not a
+   considered piece of type). Quote-mark punctuation dropped per request —
+   plain statement, not a quoted line. Accent-rule color matches
+   .bocr-crew-heading's own h2 color below, so the two read as the same
+   section's voice.
+
+   Now the first child of .bocr-frame's section, so it lands inside
+   section-3's own padding-top (the clearance reserved for .bocr-cloud's
+   overhang above the frame — see .section-3's own comment) rather than
+   needing its own large margin to dodge that overhang; margin-top is 0
+   for that reason, with margin-bottom instead giving it breathing room
+   before .bocr-cloud-frame right below. z-index:11 (above
+   .bocr-cloud-border's own z-index:10, the highest anything in
+   .bocr-cloud-frame uses) is left in place in case the cloud's overhang
+   ever reaches this far up again. */
+.bocr-plaque {
+  width: fit-content;
+  max-width: 34rem;
+  margin: 0 auto 4vh auto;
+  padding: 0 1.5rem;
+  text-align: center;
+  font-size: clamp(1.15rem, 1.42vw, 1.7rem);
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  color: #6b4423;
+  position: relative;
+  z-index: 11;
+}
+
+.bocr-plaque::after {
+  content: "";
+  display: block;
+  width: 3rem;
+  height: 3px;
+  border-radius: 2px;
+  background: #df760a;
+  margin: 1rem auto 0 auto;
+  opacity: 0.7;
+}
+
+/* Meet the Crew heading (homepage-plan.txt item 4), introducing Milky/Baby/
+   Princess right before .bocr-platforms below reveals them. Sits right
+   after .bocr-cloud-frame (.bocr-plaque moved above the museum instead —
+   see that rule's own comment) — margin-top went 6vh (still visibly
+   inside .bocr-cloud's own downward overhang, confirmed live) → 20vh
+   (still inside it) → 42vh (clear) → 55vh → 70vh → back down to 42vh
+   (per a follow-up request with a screenshot pinning the heading just
+   above the platforms instead of far above them — 42vh is the smallest
+   value already confirmed clear of the cloud's overhang, so dropping
+   below it risks reintroducing that overlap). Getting the heading close
+   to .bocr-platforms now also relies on that rule's own margin-top being
+   cut way down to match — see its comment. */
+.bocr-crew-heading {
+  text-align: center;
+  margin: 42vh auto 0 auto;
+  padding: 0 1.5rem;
+}
+
+.bocr-crew-heading h2 {
+  font-size: clamp(1.8rem, 2.33vw, 2.8rem);
+  color: #df760a;
+}
+
+.bocr-crew-heading p {
+  font-size: clamp(1rem, 1vw, 1.2rem);
+  color: #6b4423;
+  margin-top: 0.4rem;
+}
+
+/* Sized bigger than .bocr-frame and centered behind it so its puffy edges
+   show past the frame on every side, reading as a cloud "frame"/border
+   around the roof+museum rather than a background tucked invisibly behind
+   it. width/height here are just a fallback (in case JS doesn't run) —
+   .bocr-frame's own aspect ratio changes a lot between mobile (narrow,
+   but tall thanks to .bocr-viewport's clamp() height floor barely
+   shrinking) and desktop (wide, short), and no single fixed width% or
+   height% overhangs the frame on BOTH axes at every aspect ratio a fixed
+   percentage of the wrong axis leaves the cloud too short to peek out the
+   top/bottom (width-based, on mobile) or too narrow to peek out the
+   sides (height-based, on desktop). sizeCloudFrame() in main.js measures
+   .bocr-frame's actual rendered box on load/resize and sets this element's
+   width/height inline instead, picking whichever of a width-driven or a
+   height-driven size is bigger so it always overhangs on all 4 sides
+   regardless of the frame's current aspect ratio. z-index: 0 (not auto —
+   see .bocr-roof/.bocr-viewport's own z-index comments) keeps it grouped
+   with other stack-level-0 boxes, which paint before (behind) their
+   higher-z-index siblings regardless of how deep in the tree it's
+   actually nested. pointer-events: none so it never intercepts
+   drag/scroll gestures meant for the museum reel in front of it. */
+.bocr-cloud {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 130%;
+  height: auto;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Smaller cloud puffs scattered around the frame's own corners/edges,
+   drifting IN FRONT of the roof and museum (unlike .bocr-cloud behind
+   them) so the border reads as clouds passing across the picture rather
+   than just a backdrop peeking out around it. Positioned as siblings of
+   .bocr-frame within .bocr-cloud-frame — not children of .bocr-frame
+   itself — specifically so they can hang a little past its edges without
+   being cropped by .bocr-frame's own overflow: hidden (needed for the
+   roof's rotation fix); .bocr-cloud-frame has no such clipping, and its
+   own box exactly matches .bocr-frame's (the only thing sizing it in
+   normal flow), so percentages here line up with the frame's actual
+   corners. z-index above every layer inside the frame (.bocr-roof-blend's
+   6 is the highest) so these sit in front of all of it; pointer-events:
+   none so they never intercept the museum's own drag-to-scroll. */
+.bocr-cloud-border {
+  position: absolute;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.bocr-cloud-border-tl {
+  top: -7%;
+  left: -4%;
+  width: clamp(70px, 8.33vw, 160px);
+}
+
+.bocr-cloud-border-tr {
+  top: -9%;
+  right: -5%;
+  width: clamp(80px, 9.9vw, 190px);
+}
+
+.bocr-cloud-border-bl {
+  bottom: -8%;
+  left: -6%;
+  width: clamp(90px, 10.42vw, 200px);
+}
+
+.bocr-cloud-border-br {
+  bottom: -6%;
+  right: -4%;
+  width: clamp(85px, 9.9vw, 190px);
+}
+
+/* Widened to 100% of .bocr-cloud-frame (was 75% of the section directly,
+   before centering moved that width up a level) so the museum reads as
+   the section's main event rather than a small inset. */
+.bocr-frame {
+  position: relative;
+  width: 100%;
+  /* Clips the small excess .bocr-roof's rotate+scale correction below adds
+     past this box's own (unrotated) layout edges, so leveling the roof
+     doesn't shift the frame's own width/spacing or poke tile corners out
+     past its sides. */
+  overflow: hidden;
+}
+
+/* height: auto (natural aspect ratio) — not a shorter fixed height. The
+   source PNG is trimmed tight to its own content with zero dead space below
+   the lowest tile, so any fixed height (object-fit: cover included) crops
+   through the tiles' scalloped bottoms instead of stopping cleanly below
+   them: it reads as a cut-off edge, and it also opens up much bigger gaps
+   in the art's own transparent negative space than the piece was ever
+   drawn with, letting whatever's behind the roof show through in spots the
+   art was never drawn with a gap. Full natural height avoids both. z-index
+   here is what actually lifts the roof above section 2's .m2-platform/
+   .m2-table-items/.m2-teddy-bear/video canvases (all the way up to their
+   highest, 3) — section-3 itself is deliberately NOT given a z-index (see
+   its own rule above), so this has to happen at the roof itself. Also kept
+   above .bocr-viewport's own z-index so the roof reads as sitting in front
+   of the museum wall at their overlap, not behind it. */
+.bocr-roof {
+  position: relative;
+  z-index: 5;
+  display: block;
+  width: 100%;
+  height: auto;
+  /* The source art itself was drawn on a slight tilt — measuring the
+     ridge line directly (not eyeballing it), it rises from 19px down on
+     the left edge to dead level on the right edge of the 1920px-wide
+     source, a ~0.57deg slant. rotate() levels it; scale() grows the image
+     just enough that the corners it rotates out of the frame's rectangular
+     bounds still fully cover them (rather than leaving a sliver of the
+     frame's own background exposed at two opposite corners) — the excess
+     that scale adds beyond the frame's edges is what .bocr-frame's own
+     overflow: hidden crops off. */
+  transform: rotate(0.57deg) scale(1.03);
+}
+
+/* A second copy of the same roof image, stacked exactly on top of the
+   first (same width/transform, so the tiles line up pixel-for-pixel) with
+   the color-blending filter applied only to THIS copy — mask-image then
+   fades this copy out toward the middle (transparent, showing the
+   original vivid roof beneath) and in toward the edges/corners (opaque),
+   so only the outer band where the roof meets the sky/cloud actually gets
+   toned down; the bulk of the roof keeps its original saturated color.
+   z-index sits just above the base roof so the blended edges paint over
+   it. pointer-events: none since this is a purely visual overlay. */
+.bocr-roof-blend {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 6;
+  display: block;
+  width: 100%;
+  height: auto;
+  transform: rotate(0.57deg) scale(1.03);
+  filter: saturate(0.6) brightness(1.1) contrast(0.95);
+  -webkit-mask-image: radial-gradient(ellipse at center, transparent 35%, black 95%);
+  mask-image: radial-gradient(ellipse at center, transparent 35%, black 95%);
+  pointer-events: none;
+}
+
+/* 2026-09-15 mobile: "the roof... now look way too small" once the wall
+   below it (`#bocr-viewport`, see its own mobile override further down)
+   grew to ~74vh — the roof's own height is locked to its width via
+   `height: auto` (a fixed ~6.64:1 aspect ratio), and that width was already
+   maxed out at 100% of the page, so it stayed the same absolute size while
+   the wall beneath it ballooned, reading as a thin garnish band on top of
+   a much bigger room. Widened past 100% (122%, centered via a matching
+   negative margin/left) so its height grows proportionally too — 22%
+   taller, aspect intact, no distortion — while staying in normal flow, so
+   that extra height correctly adds to .bocr-frame's own total layout
+   height (pushing the wall down to make room) rather than just painting
+   bigger and getting clipped, the way a transform: scale() bump would
+   have. The 11%-per-side horizontal excess this adds past .bocr-frame's
+   own 100%-wide box gets cropped by that frame's overflow: hidden — same
+   handling already relied on for the rotate+scale correction's own small
+   excess above, and safe here too since the tiled roof art has no
+   left/right-edge-specific detail that a few percent of edge crop would
+   visibly break. .bocr-roof-blend needs the identical width + an
+   equivalent `left` offset (not `margin-left` — it's position: absolute,
+   so its horizontal offset is `left` relative to .bocr-frame, not a flow
+   margin) to keep tracking pixel-for-pixel under the base roof it blends
+   on top of; letting the two drift apart would visibly break the blend's
+   edge alignment. */
+@media (max-width: 700px) {
+  .bocr-roof,
+  .bocr-roof-blend {
+    width: 122%;
+  }
+
+  .bocr-roof {
+    margin-left: -11%;
+  }
+
+  .bocr-roof-blend {
+    left: -11%;
+  }
+}
+
+/* Pulled up over the roof (instead of sitting flush below it) so the two
+   pieces of hand-drawn art overlap and read as one continuous built piece
+   rather than two boxes stacked edge to edge — a smaller overlap here was
+   showing as an obvious hard black seam line, since neither source image
+   has a perfectly clean edge to butt against. z-index kept lower than
+   .bocr-roof's so the museum wall tucks in behind the roof at that overlap
+   rather than covering it.
+   A non-scrolling wrapper around .bocr-viewport, existing purely so the
+   vignette below has somewhere to live OUTSIDE the scroll container.
+   overflow: auto containers still scroll their absolutely positioned
+   descendants along with everything else, as long as the scroll
+   container itself is that element's containing block — position:
+   absolute only lifts an element out of normal FLOW, not out of the
+   scrollable region, so a ::after directly on .bocr-viewport was scrolling
+   away with the gallery strip instead of staying pinned to the window's
+   edges. Moving the overlap margin/z-index here too (off .bocr-viewport
+   itself) keeps this wrapper's own box matching the viewport's rendered
+   position exactly, so the vignette still lines up with it. */
+.bocr-viewport-wrap {
+  position: relative;
+  z-index: 4;
+  margin-top: -3vw;
+}
+
+/* Blends only the 4 edges of the museum window into the sky/cloud around
+   it, leaving whatever's currently scrolled into the middle at its
+   original saturated color. Unlike .bocr-roof-blend, this can't be a
+   second copy of the art with a filter — the gallery strip is a single
+   7680px image panned via .bocr-viewport's own horizontal scroll, so a
+   filtered duplicate would need to stay in perfect scroll-sync with the
+   original, which plain CSS can't do. A soft warm-white vignette instead:
+   there's no way to filter only the pixels currently showing through a
+   moving window, but visually it reads the same way — vivid at the
+   center, softened toward the frame. Living on .bocr-viewport-wrap (see
+   above) rather than .bocr-viewport itself is what keeps it from
+   scrolling away with the gallery strip. */
+.bocr-viewport-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(255, 244, 230, 0.6) 100%);
+  pointer-events: none;
+}
+
+/* A fixed-height window onto a much wider strip (each exhibit — Milky
+   first, more further along) that pans horizontally. Native overflow-x
+   keeps it usable via trackpad/touch/scrollbar on its own; main.js
+   additionally redirects the mouse wheel to horizontal scrolling while
+   the cursor is over this element specifically, so it never hijacks the
+   page's normal vertical scroll outside of it.
+
+   2026-09-13: height used to be sized off viewport HEIGHT (`42vh`), which
+   made the strip's rendered width (`.bocr-strip` below is `height:100%;
+   width:auto`, so its width is a pure function of THIS element's height)
+   drift out of proportion with the visible window's own width (driven by
+   `.bocr-frame`, independent of vh) on any screen shaped differently from
+   the 1080/1920 reference — reported as "the reel gets longer when the
+   screen is shorter." First fix tried `aspect-ratio` (tying height to this
+   element's own width, like .bocr-frame/.bocr-roof already do) plus a
+   `min-height`/`max-height` pair standing in for the old clamp's floor/
+   ceiling — but on a monitor wide enough to hit that max-height, browsers
+   apply the aspect-ratio's TRANSFERRED size and shrink the used WIDTH back
+   down to `max-height * ratio` too, not just the height — confirmed live
+   on a large/ultrawide monitor: the wall/gallery visibly stopped hundreds
+   of px short of the roof's own full width, sky showing through the gap,
+   the classic "aspect-ratio + max-height on a block that's supposed to
+   just stretch" footgun. Fixed properly with a plain `clamp()` again (no
+   `aspect-ratio` property at all — width stays a true, unconstrained 100%
+   of .bocr-frame no matter what height does), just with the middle term
+   now in `vw` scaled to match .bocr-cloud-frame's ACTUAL width fraction
+   instead of vh: this element's own width ≈ 92% of the page on desktop
+   (.bocr-cloud-frame, see below), and the target shape is height = width *
+   63/200 (solved from this element's previous rendered size at the
+   project's 1920x1080 reference, back when .bocr-cloud-frame was 75%:
+   1440px-wide frame / 453.6px-tall viewport, i.e. what the old
+   `clamp(260px, 42vh, 520px)` produced at 1080 tall) — so
+   0.92 * 63/200 * 100 = 28.98vw. At the 1920 reference that's 556.4px,
+   which is also this rule's max-height, so the ceiling engages exactly at
+   1920 (this project's usual "cap lines up with 1920" convention — see
+   badlydrawnmilky-clamp-viewport-scaling-fix memory) and a wider monitor
+   just holds height flat at 556px while width keeps growing with the
+   frame, same as the roof. **If .bocr-cloud-frame's width fraction ever
+   changes again, recompute BOTH numbers the same way: vw coefficient =
+   <new fraction> * 63/200 * 100, max-height = 1920 * that vw coefficient /
+   100.** Mobile keeps the original vh-based clamp entirely (a different,
+   already-verified tuning — see the max-width:700px override below) since
+   .bocr-frame is 100% of the page there, not 92%, and real phone screens
+   run tall-relative-to-width, the opposite skew from what this fixes. */
+.bocr-viewport {
+  position: relative;
+  width: 100%;
+  height: clamp(260px, 28.98vw, 556px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  cursor: grab;
+  background: #cfeaf7;
+  scrollbar-width: thin;
+  scrollbar-color: #df760a #e4cd9d;
+}
+
+/* vh-based sizing for the reel viewport on mobile, overriding the
+   width-driven vw clamp above — see that rule's own comment for why
+   desktop needs a width-driven formula specifically. mobile's frame is
+   already 100% of the page (.bocr-cloud-frame), and real phone screens run
+   tall-relative-to-width (the opposite skew desktop's own fix targets), so
+   reusing that formula here would under-size the gallery badly instead of
+   fixing anything.
+
+   2026-09-15: raised 42vh -> 74vh ("on mobile the museum look way way way
+   too small... make it bigger and taller, cover around 80% of the screen
+   with the height of the museum and roof") — 74vh, not 80vh directly,
+   because the museum's total height is this viewport PLUS .bocr-roof above
+   it (locked to a ~6.64:1 aspect at 100vw, so it contributes its own ~15vw
+   on top) minus the ~3vw the roof and viewport overlap by
+   (.bocr-viewport-wrap's own -3vw margin-top): solving roofHeight +
+   viewportHeight - overlap = 80vh for a typical phone's width/height ratio
+   (~1:2.2) works out to viewportHeight ≈ 74vh, which then makes the
+   COMBINED roof+viewport group land at ~80vh same as asked. .bocr-cloud
+   (sized off .bocr-frame's actual rendered box via sizeCloudFrame() in
+   main.js) and .bocr-museum-walker (sized off this same element's rendered
+   height via sizeWalker() in main.js) both scale up for free with this, no
+   separate rule needed for either — see their own comments. Floor/ceiling
+   raised to match (260/520 -> 320/640) so a very short or very tall phone
+   still lands close to the 74vh target instead of the old, much-shorter
+   design's own bounds clipping it.
+
+   THIS RULE MUST STAY AFTER THE BASE .bocr-viewport RULE ABOVE — an
+   earlier version of this same override lived up near .bocr-cloud-frame
+   (before the base rule in source order); since both selectors are the
+   same specificity, that made the LATER, unconditional base rule win on
+   every screen size including mobile, silently no-op'ing this override the
+   whole time (confirmed live: a first attempt at this exact 74vh fix
+   produced no visible change on mobile because of this). */
+@media (max-width: 700px) {
+  .bocr-viewport {
+    height: clamp(320px, 74vh, 640px);
+  }
+}
+
+/* Applied from main.js for the duration of an actual mouse drag, so the
+   cursor the CSS already promises (cursor: grab, above) matches what's
+   really happening instead of staying "grab" while mid-drag. */
+.bocr-viewport.is-grabbing {
+  cursor: grabbing;
+}
+
+/* A plain system scrollbar reads as a stray UI control glued under a
+   hand-drawn scene. Styled instead to look like part of the exhibit — a
+   warm wood-toned rail (echoing the roof tiles/gallery floor) inset in a
+   muted tan track that stays part of the room instead of standing out
+   against it. */
+.bocr-viewport::-webkit-scrollbar {
+  height: 10px;
+}
+
+.bocr-viewport::-webkit-scrollbar-track {
+  background: #e4cd9d;
+  border-radius: 6px;
+}
+
+.bocr-viewport::-webkit-scrollbar-thumb {
+  background: #df760a;
+  border-radius: 6px;
+  border: 2px solid #5b4020;
+}
+
+.bocr-viewport::-webkit-scrollbar-thumb:hover {
+  background: #f08a1e;
+}
+
+.bocr-strip {
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: none;
+}
+
+/* Wraps .bocr-strip (the image) together with the 6 .bocr-spotlight frames
+   below — inline-block with no width set so it shrink-wraps to exactly the
+   image's own rendered width (same box .bocr-strip alone used to be), which
+   is what lets every spotlight's `left: X%` (set inline per element in
+   index.html) land on that same fraction of the actual artwork regardless
+   of viewport size or how far the gallery has been panned — they're
+   positioned relative to the full 7680px-wide image, not the narrower
+   visible window, and scroll together with it since they share this same
+   box. vertical-align:top avoids the few stray px of inline-block baseline
+   gap under .bocr-strip that display:block never had. */
+.bocr-strip-wrap {
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+  height: 100%;
+}
+
+/* Best-of reel spotlights — real TikTok/Instagram embeds "hung" on the 6
+   yellowish glow pools already painted into bocr-background.jpg (measured
+   directly off the source: soft warm highlights centered at roughly x
+   1147/2077/2997/4622/5567/6418 of the 7680px-wide image, i.e. the `left`
+   percentages set inline on each .bocr-spotlight in index.html). top:13.6%
+   anchors each frame to where those glow pools actually peak (upper wall,
+   well clear of the statues and the floor below). Width is a clamp rather
+   than the glow's own % width — this gallery window tops out at 520px tall
+   (.bocr-viewport's own height clamp), nowhere near the old fixed
+   full-viewport stage this was ported from, so a purely proportional width
+   could shrink well under the ~250-300px real embeds need to render
+   without visually breaking; aspect-ratio 9/16 (matching a Reel/TikTok's
+   own shape) sets the height off that width instead of an independent %,
+   so the frame is never a mismatched box the embed has to awkwardly fit
+   into. Starts hidden/scaled down and fades in via .is-active (added by
+   the IntersectionObserver in main.js once panned into view), which is
+   also when the real embed actually lazy-loads — see loadSpotlightEmbed
+   there. */
+.bocr-spotlight {
+  position: absolute;
+  top: 13.6%;
+  width: clamp(112px, 4.2%, 190px);
+  transform: translateX(-50%) scale(0.92);
+  opacity: 0;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.bocr-spotlight.is-active {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+  pointer-events: auto;
+}
+
+/* aspect-ratio here is only a fallback box for however long it takes the
+   real embed to load in (and the "reel coming soon" placeholder, if a
+   spotlight has no URL yet) — once a real embed loads, fitEmbedIframe
+   (main.js) sets an explicit inline height instead (an explicit height
+   always wins over aspect-ratio), sized to just that post's video + the
+   "View more on Instagram" line, cropping everything below it. That
+   height is real content, not a guess, so it's however tall each specific
+   post's video actually is — no two spotlights are guaranteed the same
+   height any more. max-height is a last-resort guard against a
+   pathological post skewing that calculation absurdly tall; overflow:
+   hidden is what actually enforces every crop here, both that cap and the
+   normal header/footer crop. */
+.bocr-spotlight-embed {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  max-height: min(55vh, 460px);
+  background: #16110f;
+  border: 3px solid #fffaf0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Instagram/TikTok's real iframe only lays out correctly at (or above) a
+   platform-enforced minimum width — CSS-shrinking the iframe ELEMENT
+   directly (an earlier version forced width/height:100% here) doesn't
+   shrink what's rendered inside it, it just gives a smaller *viewport*
+   onto the exact same, still full-size layout: with overflow:hidden on
+   the frame around it, that read as "only a tiny corner of the video is
+   visible" — confirmed after a report of exactly that. Instead, the
+   iframe is left at whatever natural size the embed script actually gave
+   it and repositioned as a whole via transform (top-left anchored, see
+   fitEmbedIframe in main.js) — scaled to fit the frame's width and shifted
+   up to crop the header off, rather than being squashed into the frame's
+   box directly. */
+.bocr-spotlight-embed iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 0;
+}
+
+.bocr-spotlight-embed blockquote {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+.bocr-spotlight-embed .bocr-spotlight-placeholder {
+  color: #fffaf0;
+  font-size: 0.65rem;
+  text-align: center;
+  padding: 0.5rem;
+  opacity: 0.7;
+}
+
+.bocr-spotlight-caption {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0.4rem 0 0;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fffaf0;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+/* 2026-09-15: floor/ceiling raised (84/150 -> 140/230) along with the "roof
+   and reel now look way too small" report — the % term here was already
+   live (4.2% of .bocr-strip-wrap's own rendered width, which itself scales
+   with #bocr-viewport's height, see .bocr-strip-wrap's comment), but it was
+   still hitting this clamp's OLD 150px ceiling, tuned back when the mobile
+   viewport topped out around 520px tall. Now that the mobile viewport can
+   reach 640px (see its own mobile override), 4.2% of the taller strip wants
+   to render bigger than 150px too — raising the ceiling lets it actually
+   do that instead of sitting artificially capped, small and lost in the
+   middle of the now much taller wall around it. */
+@media (max-width: 700px) {
+  .bocr-spotlight {
+    width: clamp(140px, 4.2%, 230px);
+  }
+
+  .bocr-spotlight-caption {
+    font-size: 0.65rem;
+  }
+}
+
+/* Milky walking left-to-right across the museum's own floor as the page
+   scrolls through .bocr-frame (see the museum-walker block in main.js,
+   which drives the actual left/right position — this element only ever
+   sets a static bottom/width; main.js writes a fresh translateX here
+   every scroll tick). left:0 is the walk's own start point (JS animates
+   rightward from there, never left of it), so no CSS transform is set
+   at rest. z-index:7 — above .bocr-roof-blend's 6 (the highest anything
+   else in .bocr-frame uses) so he visibly walks in front of the roof and
+   gallery window, not behind them. */
+/* 2026-09-15: width used to be a vw-based clamp() here (a separate, fixed
+   formula from what actually sizes the museum around him — .bocr-viewport's
+   OWN height clamp, which has its own independently-tuned desktop/mobile
+   breakpoints). The two formulas only lined up by coincidence at the exact
+   reference sizes they were each tuned against; at in-between screen sizes
+   they could drift apart — reported as "the museum looks too small and
+   Milky looks too big" at a size between the two breakpoints. Replaced
+   with sizeWalker() in main.js, which measures #bocr-viewport's actual
+   rendered height every resize and sets width from THAT (a fixed fraction
+   of it — see main.js for the ratio) instead of an independent vw value, so
+   he's always in proportion to the museum as it currently renders, at any
+   screen size, not just the two sizes each formula happened to be tuned
+   for. The width below is only the pre-JS/no-JS fallback (matches the old
+   desktop ceiling). */
+.bocr-museum-walker {
+  position: absolute;
+  left: 0;
+  bottom: 2%;
+  width: 130px;
+  z-index: 7;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.bocr-milky-walk-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Ground floor beneath the museum frame: Milky's grassy platform staked out
+   on the left, Baby's staggered lower and to the right of it (echoing the
+   left/right table arrangement above). Sized in vw off the full section
+   rather than the narrower .bocr-frame, since the prompt placed these
+   against "the screen" as a whole, not pinned to the museum's own width.
+   Static heights here (rather than letting the images set their own
+   document flow) are what stretch this section into the longer scroll the
+   page wants. margin-top used to be 42vh — clearance for .bocr-cloud
+   (position: absolute, so .bocr-cloud-frame's own layout height has no
+   idea how far its paint visually extends below it; without clearance
+   here the cloud's bottom edge overlapped this container by 65px+) — but
+   .bocr-crew-heading directly above now carries that same 42vh margin
+   itself (per a request to land the heading just above these platforms),
+   which already clears the cloud well before this rule's own box begins.
+   Cut way down to a small gap that just separates the heading text from
+   the platforms below it. */
+.bocr-platforms {
+  position: relative;
+  width: 100%;
+  height: 62vw;
+  /* 2026-09-14: raised from 780px (was capping growth starting around
+     ~1258px-wide screens — 780/0.62) to 1190px, the same "saturate at this
+     project's 1920px desktop reference, not before it" convention every
+     other clamp() on this page already follows (see the 2026-09-13
+     clamp()-rescale fix in memory): 62vw * 19.2px/vw at 1920px = 1190.4px.
+     Without this, the whole Milky/Baby platform scene stopped scaling up
+     on any screen wider than ~1258px, unlike the rest of the page. */
+  max-height: 1190px;
+  margin-top: 5vh;
+}
+
+/* "Meet the Crew, on the phone... a slightly longer scroll" — a vw-based
+   height (62vw ≈ 242px on a typical phone) makes this whole platforms
+   block noticeably shorter on mobile than desktop's own experience of it
+   (62vw of a much wider screen). Switched to a taller vh-based height for
+   mobile specifically so the Milky->Baby->river journey takes longer to
+   scroll through, matching the vh-based convention this file already uses
+   for section-length tuning elsewhere (e.g. section-4's own padding-top).
+   .bocr-river-wrap's own margin-top gets the same treatment right below —
+   see that rule for why lengthening it also means "more pee animation" for
+   free, no separate asset/tile change needed. */
+@media (max-width: 700px) {
+  .bocr-platforms {
+    height: 70vh;
+    max-height: none;
+  }
+
+  /* "add some space between baby/her platform and milky/his platform" —
+     .bocr-platforms's own height above is unchanged (still 70vh), so this
+     just redistributes room already inside that fixed box: baby's spot
+     (staggered lower than Milky's by design, see .bocr-baby-spot's own
+     comment) moves further down, widening the vertical gap between the two
+     groups instead of stretching the section to fit it.
+     right:30vw ("move baby slightly more to the left on the platform",
+     mobile only, raised 6vw→14vw→22vw→30vw across follow-ups asking for
+     "even more to the left") nudges her off the desktop rule's flush
+     right:0 — a vw unit so the shift scales with screen width instead of
+     eating a fixed chunk of a narrow phone's own limited space. At this
+     offset she's now overlapping Milky's own spot box in raw x-range on
+     narrow phones (both pinned to their mobile width floors — her 260px,
+     his 280px), but the two are staggered vertically (top:38vh vs. his
+     top:0) by design, same as every other mobile round in this file, so
+     get this confirmed live rather than pushing further blind if a real
+     visual collision (not just an x-range overlap) shows up. */
+  .bocr-baby-spot {
+    top: 38vh;
+    right: 30vw;
+  }
+}
+
+/* Positioning context sized exactly to the platform art's own rendered
+   box (aspect-ratio matches its 3840x2160 source) so Milky's canvases and
+   the pee chain below can be placed with top/left percentages against the
+   art itself, instead of against .bocr-platforms's own much taller box
+   (62vw/780px, to fit Baby's lower-staggered platform beneath it too) —
+   a percentage against the outer box wouldn't track the art's actual
+   drawn content at all. */
+.bocr-milky-spot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: clamp(280px, 29.17vw, 560px);
+  aspect-ratio: 1100 / 548;
+  z-index: 2;
+}
+
+.bocr-milky-platform {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Flush against the section's right edge, not floating with open space
+   past it — unlike Milky's platform, this source art was drawn flush to
+   its own canvas's right edge with no taper, so anywhere short of the
+   actual edge leaves a visible hard cut hanging in empty air. */
+/* "move baby and her platform down" — was top:20vh. Her caption
+   (.bocr-crew-caption, "Baby"/"the calm one, allegedly") is a child of
+   this same box, positioned by percentage against it, so it moves down
+   together with her platform for free — no separate edit needed there. */
+.bocr-baby-spot {
+  position: absolute;
+  top: 28vh;
+  right: 0;
+  width: clamp(260px, 27.08vw, 520px);
+  aspect-ratio: 1000 / 508;
+  z-index: 1;
+}
+
+.bocr-baby-platform {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Milky: drops onto his platform via bocr-milky-intro.mp4 (still the old
+   low-res GIF-sourced clip — untouched by this swap), then hands off to
+   bocr-milky-loop.mp4 (his idle loop, which already includes him
+   periodically peeing) — the same intro-canvas/loop-canvas handoff as
+   .m2-video-canvas/.m2-loop-canvas above (see startBlackKeyedCanvas in
+   main.js). Sized/positioned to stand right at the edge of the grassy
+   mound in the platform art, same target spot as before this swap — not
+   centered in the platform's own box, and not on the thicker/rounder
+   grass toward the flowers on the left. */
+.bocr-milky-intro-canvas,
+.bocr-milky-loop-canvas {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* 2026-09-07: bocr-milky-loop.mp4 swapped from a low-res GIF-sourced clip
+   to a genuine native 3840x2160 source (assets/Homepage/4- Milky only
+   MP4.mp4, cropped to assets/web/bocr-milky-loop.mp4 — see this project's
+   memory for the crop recipe and why). The new source frames Milky very
+   differently (a tight 700x978 portrait crop vs. the old loosely-padded
+   853x480 landscape one), so left/top/width below are freshly solved, not
+   the old values — same target spot on the mound as before (solved via
+   canvasLeftFrac = targetX - canvasWidthFrac*charCenterXFrac and
+   canvasTopFrac = targetY - canvasHeightFrac*charFeetYFrac, back-deriving
+   targetX/targetY from the *previous* shipped left/top/width + the old
+   clip's own measured character bbox, then re-solving against the new
+   clip's own measured bbox so the on-platform landing spot doesn't move
+   even though the source framing completely changed). Math-verified, not
+   yet eyeballed live — this project's browser automation still can't
+   decode <video> (see the gotcha in badlydrawnmilky-section4-crew memory),
+   so check in a real browser and nudge left/top/width if he's not
+   standing where expected. */
+.bocr-milky-loop-canvas {
+  left: 40.6%;
+  top: 3.88%;
+  width: 38.74%;
+}
+
+/* Milky is drawn noticeably smaller within bocr-milky-intro.mp4's own
+   852x480 frame than in bocr-milky-loop.mp4's (measured via black-keyed
+   getImageData scan of his on-screen height at the last intro frame vs.
+   the first loop frame: 141px vs 181px, a consistent ~28% scale
+   difference baked into the source art, not a CSS bug) — sharing the loop
+   canvas's box made him visibly shrink at the intro-to-loop handoff.
+   These values scale the intro canvas up by that same ~28% and solve for
+   a new left/top so his head/ear position at handoff lands on the exact
+   same on-screen pixel the loop canvas draws it at (verified against a
+   second landmark, his feet position, landing within a fraction of a
+   pixel of the loop canvas's — confirms this is a uniform scale+
+   translate, not a reframe, so one matched point was enough to solve). */
+.bocr-milky-intro-canvas {
+  left: -26.5%;
+  top: -74.7%;
+  width: 173.3%;
+}
+
+.bocr-milky-loop-canvas {
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.25s ease, filter 0.25s ease;
+}
+
+.bocr-milky-loop-canvas.is-visible {
+  opacity: 1;
+}
+
+/* Chained copies of bocr-milky-pee.gif (the stream isolated from Milky
+   himself), stacked with no gaps to carry it down past the baby platform
+   and into the river below. Left/top/width/height are all set at runtime
+   by buildPeeChain in main.js — Milky's canvas and the river art live in
+   different flow contexts (one inside .bocr-platforms, one after it), so
+   no fixed CSS length can size a bridge between them; only a real
+   getBoundingClientRect measurement can. Every tile draws the same shared
+   <img>, so they always show the identical current frame — the stream
+   doesn't animate "downward" between tiles, it pulses on/off in lockstep
+   the way the source clip itself does. */
+.bocr-pee-chain {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  /* layout() in main.js sets height to the exact measured gap to the
+     river's top edge, but ensureTiles() rounds UP to a whole number of
+     tiles (Math.ceil(gap / tileHeight)) — a single oversized tile is
+     common on narrow/mobile widths, where tileHeight (locked to
+     STREAM_WIDTH_FRACTION of Milky's own canvas width) can be much
+     bigger than the real gap. Without clipping, that last tile's own
+     overflow (default: visible) spilled straight past this container's
+     bottom edge and down through the puddle art below — "the yellow line
+     exceeded the river" on some mobile measurements. Clipping to this
+     container's own explicit height keeps the chain ending exactly at
+     the river's top edge no matter how much the tile math overshoots. */
+  overflow: hidden;
+}
+
+.bocr-pee-chain canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Baby: sits on the open dirt patch left of her own platform's flowers,
+   an ambient idle loop that starts the moment she scrolls into view (see
+   the reveal observer in main.js) rather than syncing to Milky's intro.
+   Target on-screen landing spot (center of the clear dirt patch, clear of
+   the flower bush that starts at ~54.5% across the platform) is unchanged
+   from before — only left/top/width below changed, and only because
+   2026-09-07's source swap (see the note on .bocr-milky-loop-canvas above
+   for the full explanation and the formula used) completely changed the
+   clip's own framing: bocr-baby-loop.mp4 is now cropped from genuine
+   native 3840x2160 footage (assets/Homepage/4- Baby only MP4.mp4) instead
+   of a low-res GIF, a tight 700x954 portrait crop instead of a
+   loosely-padded 853x480 landscape one. Math-verified against the same
+   target spot the old values landed on, not yet eyeballed live — check in
+   a real browser. */
+.bocr-baby-loop-canvas {
+  position: absolute;
+  left: 5.73%;
+  top: -25.53%;
+  width: 37.7%;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.25s ease, filter 0.25s ease;
+  pointer-events: none;
+}
+
+.bocr-baby-loop-canvas.is-visible {
+  opacity: 1;
+}
+
+/* Full-bleed drip along the very bottom of the section, past both
+   platforms — its own natural width already spans edge to edge, so no
+   side margins are needed to make it read as a floor for the whole page.
+   aspect-ratio (the image's own real 1920x558) reserves .bocr-river-wrap's
+   height immediately on first layout, before the PNG itself has actually
+   downloaded — reported as "on mobile, only sometimes, Princess is out of
+   the river and her lines exceed it": .bocr-princess-hotspot positions
+   itself with `top: -2.33%`, a percentage of THIS wrap's height, and
+   without a reserved aspect-ratio that height is genuinely 0 (nothing else
+   in the wrap has intrinsic size) until this image finishes loading —
+   `top:-2.33%` of 0 is 0, i.e. her hotspot's top edge lands right at the
+   wrap's own top instead of the puddle's. Milky's/Baby's own platform
+   images don't have this problem (see .bocr-milky-platform/.bocr-baby-
+   platform above) because they're absolutely positioned to fill an
+   already-sized parent rather than establishing that size themselves — the
+   river art is the only one of the three doing the latter. Only visible on
+   a slow-enough connection to actually observe that pre-image-load instant
+   (matches "only sometimes" — everything local/cached loads too fast to
+   ever hit it), and self-corrects the moment the image finishes loading
+   and the browser reflows, which is also why it read as a transient/
+   inconsistent glitch rather than a flat-out permanent misplacement. */
+.bocr-princess-river {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1920 / 558;
+}
+
+/* Purely a positioning context for .bocr-princess-loop-canvas below — the
+   river img itself keeps all its own sizing (display/width, margin-top
+   moved up to this wrapper — see below) untouched, this wrapper just
+   shrinks to match its box. The background color is new:
+   bocr-princess-river.png's drips don't cover the full box (it's a
+   dripping shape, not a solid rectangle — see the gotcha on
+   .bocr-princess-loop-canvas above), so the gaps between drips show
+   whatever sits behind this wrapper. That used to be section-3's own
+   gradient fading to a pale near-white (#f4fbfd) — fine on its own, but
+   section-4 right below starts dark, so those pale gaps sat directly on
+   top of a hard cut to black and read as a mismatched patch. Matching the
+   backing color to section-4's dark tone here instead makes the drips
+   look like they're hanging in front of the same dark space that
+   continues below, rather than in front of a leftover strip of daylight.
+   margin-top (the 24vh gap above the river, between it and the platforms
+   above) had to move here from .bocr-princess-river itself: it used to be
+   invisible against section-3's matching pale background, but a margin on
+   the *img* sits inside this wrapper's own box (this wrapper "shrinks to
+   fit its content" including the child's margin), so once this got a
+   dark background that whole 24vh gap rendered as a stray solid-black bar
+   above the river instead of the pale sky it should still show. Moving
+   the same gap to be this wrapper's own margin-top instead keeps it
+   outside this box entirely, back in ordinary section-3 flow. */
+.bocr-river-wrap {
+  position: relative;
+  /* z-index: 0 (not the default auto) matters here: it's what makes this
+     element establish its own real stacking context, so the ::before
+     below's z-index: -1 is scoped to sinking behind *this* element's own
+     in-flow children only. Without it, position: relative + z-index:auto
+     doesn't create that boundary, and z-index: -1 sinks the ::before all
+     the way behind section-3's own background instead — which is exactly
+     what happened on the first pass at this (visually indistinguishable
+     from the ::before not rendering at all, since section-3's own
+     background is opaque). */
+  z-index: 0;
+  margin-top: 24vh;
+}
+
+/* Same "slightly longer scroll" request as .bocr-platforms above, mobile
+   only — this margin is the actual gap buildPeeChain() (main.js) measures
+   and fills with tiled copies of Milky's pee clip, so lengthening it here
+   is *also* "add more of the pee animation to make it longer": the chain
+   is already built by measuring this real gap and computing how many
+   tiles fit, not a fixed count, so it automatically grows to match — no
+   separate change needed in main.js. */
+@media (max-width: 700px) {
+  .bocr-river-wrap {
+    margin-top: 34vh;
+  }
+}
+
+/* The actual dark backing lives on a ::before instead of directly on
+   .bocr-river-wrap's own background, because it needs a mask (see below)
+   and mask-image applies to everything the element paints, background
+   AND children alike — put it on the element itself and it would fade
+   the river img/princess canvas to transparent right along with the
+   background at the top edge, which isn't wanted. A separate absolutely-
+   positioned layer, sat behind the real content (z-index: -1, inside
+   this wrapper's own stacking context from position: relative above),
+   keeps the mask scoped to just the decorative fill. */
+.bocr-river-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  /* Same dark-purple gradient as .section-4 (shared tokens above), sides
+     darker than the middle — deliberately matched so there's no visible
+     seam where this wrapper's bottom edge meets section-4's top edge. */
+  background: linear-gradient(to right, var(--room-purple-edge) 0%, var(--room-purple-mid) 50%, var(--room-purple-edge) 100%);
+  /* Not a flat fill down to the top: the drawn puddle's own top edge
+     (roughly the first 5% of the image's height) is a soft hand-inked
+     line, not a hard 100%-opaque edge — pixel-scanning it found real
+     transparency there (row 0 fully transparent, ramping up to fully
+     opaque only by ~5% down). An opaque fill all the way up showed
+     through that fringe as a stray dark line right along the top of the
+     river, above where any real drip gap exists. Masking out the first
+     6% (comfortably past that fringe, and still well before the solid
+     band ends and real gaps start around 38%) avoids it — the pale sky
+     shows through there instead, same as before this background existed. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 6%, black 9%, black 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, transparent 6%, black 9%, black 100%);
+}
+
+/* Crossfades in over ::before once the candle's flame goes out (see the
+   candle-ignite block in main.js, which adds .is-warm here and on
+   #section-4 together) — a flat --room-warm fill rather than a gradient,
+   since there's no "sides darker" mood to keep once the room isn't dark
+   anymore. Same mask as ::before, for the same reason (the puddle's own
+   soft top edge). Stacked as a second layer at the same z-index/inset
+   rather than replacing ::before's background outright, because CSS can't
+   transition between two different gradients directly (custom-property
+   swaps just snap) — animating this layer's opacity from 0 to 1 is what
+   actually gets a smooth fade. */
+.bocr-river-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--room-warm);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 6%, black 9%, black 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, transparent 6%, black 9%, black 100%);
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+
+.bocr-river-wrap.is-warm::after {
+  opacity: 1;
+}
+
+/* Princess pops up out of the puddle, independent of where Milky's pee
+   chain actually lands. left/top/width below were re-solved 2026-09-07
+   when bocr-princess-loop.mp4 got swapped from a low-res GIF-sourced clip
+   to genuine native 3840x2160 footage (assets/Homepage/4- Princess only
+   MP4.mp4, cropped to assets/web/bocr-princess-loop.mp4 — see the note on
+   .bocr-milky-loop-canvas above for the full swap explanation and the
+   canvasLeftFrac/canvasTopFrac formula used) — same target landing spot
+   in the puddle as before (solved via her bbox *center*, not her bottom
+   edge, matching the original methodology: canvasTopFrac = targetY -
+   canvasHeightFrac*centerYFracInCanvas), just re-derived against the new
+   clip's own completely different framing (a 1000x648 crop that includes
+   her scattered confetti sparkles, vs. the old 853x480 one). width is
+   still a vw-based clamp rather than a %, since this canvas's containing
+   block (.bocr-river-wrap) doesn't have a fixed aspect-ratio the way
+   .bocr-milky-spot/.bocr-baby-spot do — 25vw replaces the old 36vw
+   because the new crop's own character silhouette fills much more of its
+   canvas (less empty padding), so a smaller canvas achieves the same
+   on-screen character size; floor/ceiling (230px/420px) scaled down from
+   the old 330px/600px by the same 25/36 ratio. Math-verified against the
+   same target spot, not yet eyeballed live — check in a real browser. */
+/* Carries the position/size .bocr-princess-loop-canvas used to hold
+   directly (left/top/width below are the exact same values, just moved
+   up a level) — added as a proper hover hotspot scoped tightly to
+   Princess's own box, since .bocr-river-wrap itself (the old positioning
+   context) spans the section's full width and would have made the whole
+   river count as "hovering her". The canvas is now a plain in-flow child
+   (width:100%, height:auto off its own 1000x648 intrinsic ratio) instead
+   of also being absolutely positioned, so this wrapper's own auto height
+   comes from the canvas for free — no separate aspect-ratio needed. */
+/* "decrease princess's size" — was clamp(230px, 21.88vw, 420px). Cut ~20%
+   (same ratio kept between floor/mid/cap so she still scales the same way
+   across screen sizes, just smaller throughout). */
+.bocr-princess-hotspot {
+  position: absolute;
+  left: 36.76%;
+  top: -2.33%;
+  /* Decreased again ("make princess smaller") — another 20% off the prior
+     clamp(184px, 17.5vw, 336px), same ratio kept, desktop only (mobile's
+     own clamp below was deliberately bumped UP once already, per "she
+     looks too small" — leaving it alone here). */
+  width: clamp(147px, 14vw, 269px);
+  z-index: 1;
+}
+
+@media (max-width: 700px) {
+  /* "increase princess's size, she looks too small" — was clamp(98px, 25vw, 420px), a much smaller mobile floor/scale than Milky's (280px)
+     or Baby's (260px) own spots right above, so she read as tiny next to
+     them. Raised both the floor and the vw factor. */
+  .bocr-princess-hotspot {
+    width: clamp(170px, 38vw, 420px);
+    /* That size bump created a new problem on narrow phones: her canvas
+       height (locked to width via the 1000x648 aspect ratio) doesn't
+       shrink below ~110px even at the 170px width floor, but
+       .bocr-river-wrap's own height DOES keep shrinking with viewport
+       width (it's a fixed 1920:558 aspect ratio on its own full-bleed
+       width) — around ~375px wide and narrower, the wrap gets shorter
+       than her canvas, so her feet/bottom edge pokes out past the
+       river's bottom into section-4's dark background below ("Princess
+       exceeds the river"). The base -2.33% top (a % of the wrap's own,
+       now-too-short height) isn't enough room to compensate. A fixed px
+       lift — bigger than % at these small heights — pulls her whole box
+       up so her bottom clears the wrap's bottom edge at the narrowest
+       widths this media query covers, and just reads as "moved up a
+       little" everywhere else in the range. */
+    top: -18px;
+  }
+}
+
+.bocr-princess-loop-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.25s ease, filter 0.25s ease;
+  pointer-events: none;
+}
+
+.bocr-princess-loop-canvas.is-visible {
+  opacity: 1;
+}
+
+/* Meet the Crew hover state: a gentle grow + warm glow on whichever
+   character's own box (.bocr-milky-spot/.bocr-baby-spot/
+   .bocr-princess-hotspot) the cursor is over, paired with the caption
+   reveal below. transform-origin: 50% 100% (bottom center) so each
+   character visibly grows from their own feet/base instead of the scale
+   drifting them off their platform in some direction. The canvases are
+   all pointer-events:none (see their own rules) specifically so hover
+   detection falls through to these containers instead of the canvas
+   itself swallowing it. */
+.bocr-milky-spot:hover .bocr-milky-loop-canvas,
+.bocr-baby-spot:hover .bocr-baby-loop-canvas,
+.bocr-princess-hotspot:hover .bocr-princess-loop-canvas {
+  transform: scale(1.06);
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 0 14px rgba(255, 205, 120, 0.6));
+}
+
+/* The "Milky (chaos) / Baby (the calm one, allegedly) / Princess
+   (certified menace)" name + taglines from Home Content Summary.txt's
+   Meet the Cast entry — never used on the page before. The NAME
+   (.bocr-crew-caption-name) is a permanent label, always shown, sitting
+   on the character's own head; the tagline (.bocr-crew-caption-sub) is a
+   hover-only reveal underneath it (see its own :hover rule below) — the
+   name always answers "who is this", the tagline is the extra "meet X"
+   payoff for actually hovering. No card/background behind either (a
+   plain pill/box read as too boxy for a hand-drawn page) — text-shadow
+   glow on the letters themselves instead (see -name/-sub below) both
+   carries the "glowing" look asked for and keeps it readable over
+   whatever's directly behind it (sky, grass, platform wood) without an
+   opaque backing. */
+.bocr-crew-caption {
+  position: absolute;
+  left: 50%;
+  top: 6%;
+  transform: translate(-50%, 0);
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 6;
+}
+
+/* Pale fill + glow (an earlier pass) read fine against the wood platform
+   but washed out badly against the sky — near-white text on light blue is
+   just low contrast, glow or not. Flipped to a dark, saturated fill with a
+   bright warm-white halo glowing OUTWARD from it instead — a light rim
+   tight against the letters for contrast on any background, then two
+   wider soft blurs for the actual glow. Same recipe on -sub in the page's
+   own body-text brown, just smaller.
+   Re-picked per request ("the font colors need to be changed... choose a
+   better color"): the original fill shared the "Meet the Crew" heading's
+   own orange (#c65a00) — checked via WCAG contrast math against this
+   caption's actual backgrounds (pale sky #a9def2/#c9ecf9, grass-mound
+   platforms #89b55c) and it measured 2.96:1 / 3.46:1 / 1.82:1, all well
+   under even the 3:1 large-text minimum, worst on the grass mounds these
+   platforms actually sit on — confirmed visually too (a live side-by-side
+   render of "Milky"/"chaos" on both backgrounds showed the orange nearly
+   disappearing into the grass). A deep raspberry-pink reads 6.5-9x
+   stronger against the same three backgrounds (6.37:1 / 7.45:1 / 3.90:1
+   measured for this exact hex) while staying warm/playful rather than
+   drifting toward a cool, corporate-feeling hue (a navy or teal scored
+   even higher on paper but read as tonally wrong for a pastel dog-mascot
+   brand in the same visual check) — and it gives the character labels
+   their own distinct identity from the heading's orange instead of
+   reusing it verbatim. Glow tint shifted from gold to a soft pink to match
+   the new fill instead of clashing with it. */
+.bocr-crew-caption-name {
+  margin: 0;
+  color: #c2255c;
+  font-weight: 700;
+  font-size: clamp(0.95rem, 0.96vw, 1.15rem);
+  line-height: 1.2;
+  text-shadow:
+    0 0 4px rgba(255, 255, 255, 0.95),
+    0 0 12px rgba(255, 182, 213, 0.9),
+    0 0 24px rgba(255, 140, 190, 0.6);
+}
+
+/* Hidden until hover (opacity/transform), unlike -name above which is
+   always visible now — see the block comment above this rule group.
+   position:absolute (not a normal-flow second line under the name) so it
+   never reserves layout space while hidden — otherwise .bocr-crew-caption
+   itself would still be exactly as tall as the two-line name+tagline
+   stack even with the tagline invisible, which for Milky specifically
+   (see .bocr-milky-spot .bocr-crew-caption below, anchored to his own
+   caption's full height) would leave his name floating further above his
+   head than the actual clearance needs. */
+.bocr-crew-caption-sub {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  margin: 0;
+  margin-top: 0.2rem;
+  color: #4a3626;
+  font-weight: 600;
+  font-size: clamp(0.75rem, 0.71vw, 0.85rem);
+  line-height: 1.2;
+  text-shadow:
+    0 0 4px rgba(255, 255, 255, 0.95),
+    0 0 10px rgba(255, 224, 160, 0.8);
+  opacity: 0;
+  transform: translate(-50%, -6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.bocr-milky-spot:hover .bocr-crew-caption-sub,
+.bocr-baby-spot:hover .bocr-crew-caption-sub,
+.bocr-princess-hotspot:hover .bocr-crew-caption-sub {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* Milky only: the shared top:6% above landed square on his face — his
+   loop canvas (.bocr-milky-loop-canvas) sits higher and taller within
+   his own spot than Baby's/Princess's do within theirs, so the same
+   offset that clears them doesn't clear him. Measured his actual head
+   position the same way section-4's crew were sized for their own
+   overlap fix: pixel-scanned bocr-milky-loop.mp4 (black-keyed, all 32
+   frames) for the topmost non-background ink — his head starts ~11.4%
+   down his own spot's height. Anchored from the caption's own BOTTOM
+   edge (translateY(-100%)) rather than a fixed top offset, so it stays
+   clear of his head regardless of exactly how tall the name+tagline text
+   ends up being (the tagline only adds height on hover), instead of
+   needing hand-tuning again if the copy ever changes. */
+/* Re-tuned per request ("too close to his head... move it up more, and to
+   the right so it's directly on top of his head"): horizontal `left` moved
+   from the inherited 50% (dead center of .bocr-milky-spot) to ~60%, matching
+   .bocr-milky-loop-canvas's own actual horizontal center within that spot
+   (left:40.6% + width:38.74%/2) — his canvas isn't centered in the spot box,
+   so a caption centered on the spot itself sat visibly left of his real
+   head. `top` pulled up from 10.5% to 1.5% for more headroom above the
+   11.4%-down head-top landmark the original comment measured — the old gap
+   (0.9% of the spot's height) didn't leave room for :hover's own
+   scale(1.06) on the canvas (transform-origin 50% 100%, so hovering grows
+   his head upward toward the caption, not just outward): a live
+   getBoundingClientRect check found scale(1.06) alone raises his head-top
+   landmark by ~17px in a ~560px-wide spot box (the canvas grows from its
+   own bottom edge, so nearly all of that 6% of its ~300px rendered height
+   goes upward) — a first pass at 5% (~15px gap in that box) didn't clearly
+   clear that; 1.5% leaves real margin instead of a near-zero one. */
+.bocr-milky-spot .bocr-crew-caption {
+  left: 60%;
+  top: 1.5%;
+  transform: translate(-50%, -100%);
+}
+
+/* Section 4 (Social Proof / Stats, per homepage-plan.txt item 5 — no
+   other content built yet beyond the candle interaction). section-3
+   fades down to a near-white blue (#f4fbfd) at its own bottom edge, but
+   the drip gaps in the river art right above this section are backed by
+   this exact same dark-purple gradient (.bocr-river-wrap::before, shared
+   --room-purple-* tokens at the top of this file) — so what actually
+   meets this section's top edge is already dark purple, not the pale
+   sky, and the two read as one continuous dark space with no visible
+   seam between them. Darker at the left/right sides than the middle,
+   like a single light in an otherwise bare, empty room.
+   min-height was originally stretched all the way to 300vh (with a 130vh
+   padding-top below) per an earlier "a longer scroll" request — cut back
+   here, per a follow-up request that the section had gone too far the
+   other way and now took too long to scroll through. Trimmed padding-top
+   130vh -> 105vh (still comfortably past one full viewport, so the candle
+   stays off-screen for that first screenful the way the original 130vh
+   guaranteed — see the note below on why it can't drop below ~100vh
+   without reintroducing the "candle visible immediately" bug — just less
+   than 130vh of *extra* empty room past that point) and min-height 300vh
+   -> 240vh (shortens the section overall), while adding a fresh
+   padding-bottom (see below) so the freed-up length isn't just deleted
+   outright — some of it becomes deliberate blank room at the *end* of the
+   section instead, giving the candle scene a breath of dark space to sit
+   in before the footer starts, rather than cutting straight from "still
+   stuck mid-screen" to the next section. */
+.section-4 {
+  position: relative;
+  width: 100%;
+  min-height: 240vh;
+  background: linear-gradient(to right, var(--room-purple-edge) 0%, var(--room-purple-mid) 50%, var(--room-purple-edge) 100%);
+  /* Pushes the candle's own normal (non-stuck) flow position well below
+     this section's own top edge — per request, the candle was reaching
+     its resting on-screen spot immediately on crossing into section-4
+     (sticky "catches" the moment the candle's natural position would
+     otherwise scroll past the target, and with zero spacing that natural
+     position started right at this section's own top, so with a tall
+     section almost the whole thing was "available" to satisfy the stick
+     immediately). Spacing here means the candle's natural position starts
+     below the bottom of the very first screenful of section-4, so it isn't
+     visible at all until scrolled to — you cross into a plain dark room
+     first, then reach the candle further in, then it sticks once you do.
+     This has to be padding here, on the section, not margin-top on
+     .candle-rig itself: a sticky (or any in-flow) child's margin-top can
+     collapse with its parent's own margin when the parent has no
+     padding/border to block that — same class of bug as
+     .bocr-river-wrap's margin-top gotcha earlier in this file. Confirmed
+     live: margin-top on .candle-rig had *zero* effect on when it stuck;
+     padding on the actual container does. */
+  padding-top: 105vh;
+  /* New: dedicated blank space at the very end of the section (dark room,
+     no content) before the footer begins, per request — previously the
+     section ended the moment the candle's sticky hold ran out, with
+     nothing but the footer immediately below it. */
+  padding-bottom: 20vh;
+}
+
+/* Social Proof / Stats copy (homepage-plan.txt item 5) — no real follower
+   counts to show yet, so this leans on tone ("the crew's still out there")
+   rather than inventing numbers that would need to be swapped for real ones
+   before this ever ships live. Color uses --room-warm so the text itself
+   reads as a soft light in the otherwise bare room, echoing the
+   single-overhead-light mood the section's own gradient already sets up.
+
+   position: sticky now (was: absolute, pinned to a single fixed point
+   18vh below #section-4's own top edge) — per request, that fixed point
+   meant the text scrolled away with the rest of the document long before
+   the candle itself ever arrived (the candle only sticks once you're
+   130vh into this 300vh section — see .section-4's own padding-top
+   comment — so by then the text was long off-screen: "too far from the
+   candle"). Sticky makes this a genuine in-flow child instead, which
+   means it now inherits that same 130vh padding-top delay .candle-rig
+   already has — both start held below the viewport together and catch
+   their own sticky position at roughly the same scroll depth, rather than
+   the text appearing immediately while the candle is still 130vh away.
+   top: 26vh (nudged down from an initial 18vh-equivalent guess, per
+   follow-up request) sits it in the open upper portion of the viewport,
+   clear of .candle-rig's own sticky resting spot near the bottom (that
+   one's `top` is computed in JS from the candle's own rendered height —
+   see positionStickyTop() in main.js — but is always the lower half of
+   the screen by design), so the two coexist on screen together rather
+   than overlapping. */
+.s4-intro-text {
+  /* Centered via left/right/margin-auto rather than the usual
+     left:50%+translateX(-50%) trick — this element also carries
+     .reveal-text, whose own .is-revealed rule sets a translateY transform
+     at higher specificity (two classes vs. one) that would silently replace
+     any transform set here, losing the horizontal centering the instant
+     the reveal fires. Margin-based centering needs no transform at all, so
+     it can't collide with reveal-text's. */
+  position: sticky;
+  top: 11vh;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  /* Widened from 34rem — that width was tuned for the old single-column
+     paragraph copy; the 3-tile stat row below reads cramped in a narrower
+     box on desktop (see .s4-stats). Still narrow enough to stay centered
+     and readable, and .s4-stats itself stacks to one column under 700px
+     regardless of this width. */
+  width: min(92%, 50rem);
+  text-align: center;
+  padding: 0 1.5rem;
+  /* Raised above .candle-rig's own z-index:5 — the actual cause of
+     "the words are getting blocked by princess": DOM order alone would
+     have put .candle-rig (and everything inside it, crew included) in
+     front of this text, since it comes later in the markup, and its
+     explicit z-index:5 made that stacking order absolute regardless of
+     any position tweak. The text now always wins the stack, so nothing
+     drawn inside the rig can ever paint over it again, independent of
+     exactly how close the two get. */
+  z-index: 6;
+}
+
+/* Colors are tuned for the *dark* room and don't automatically hold up
+   once the candle lights it — the background crossfades to --room-warm
+   (see .section-4.is-warm::before below), and h2 here used to be that
+   exact same --room-warm color, meaning the heading would fade toward
+   total invisibility against its own now-matching background. Added a
+   `.section-4.is-warm` override for both h2/p (a legible dark brown/plum,
+   the same family of "warm room" text color used elsewhere on the page —
+   e.g. .bocr-crew-heading's own p) plus a `transition: color` on the base
+   rule so the swap crossfades in step with the background's own 1.6s
+   fade instead of snapping instantly. */
+.s4-intro-text h2 {
+  /* vw->vmin, see .candle-rig's own comment for why/the conversion math. */
+  font-size: clamp(1.6rem, 3.56vmin, 2.4rem);
+  color: var(--room-warm);
+  transition: color 1.6s ease;
+}
+
+/* Stat tiles (homepage-plan.txt item 5) — replaces 3 plain stacked
+   paragraphs, which read as one dense block of prose with the actual
+   numbers buried mid-sentence ("too messy", per request). Each stat is
+   now its own tile: a big, glowing "hero number" (.s4-stat-number) with a
+   small label underneath (.s4-stat-label) explaining it — the number
+   carries the visual weight, the label is secondary, same hierarchy this
+   project's own dataviz-style stat callouts elsewhere would use. Row on
+   desktop, single column on mobile (see the max-width:700px block below)
+   — flex-wrap alone would eventually stack these too as the viewport
+   narrows, but an explicit breakpoint gives a clean single-column reading
+   order instead of an unpredictable 2-then-1 wrap partway through. */
+.s4-stats {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  /* vw->vmin, see .candle-rig's own comment for why/the conversion math. */
+  gap: clamp(1.5rem, 5.19vmin, 3.5rem);
+  margin-top: 1.5rem;
+}
+
+.s4-stat {
+  flex: 1 1 9rem;
+  max-width: 14rem;
+}
+
+/* Glow (not a flat color, unlike the plain h2/label text below) so the
+   numbers themselves read as the section's own small points of light in
+   the dark room — echoing the "single warm light in an otherwise bare
+   room" mood .s4-intro-text's own comment already establishes for the
+   heading, just literalized on the actual numbers this time. Drops to a
+   flat warm brown with no glow once the room lights up (glow behind dark
+   text on a now-light background would just look like a smudge, not
+   light), matching the same two-state color swap every other piece of
+   text in this block already does. */
+.s4-stat-number {
+  margin: 0;
+  font-weight: 700;
+  /* vw->vmin, see .candle-rig's own comment for why/the conversion math. */
+  font-size: clamp(1.8rem, 3.86vmin, 2.6rem);
+  line-height: 1.15;
+  color: #ffe3a3;
+  text-shadow:
+    0 0 10px rgba(255, 214, 130, 0.55),
+    0 0 22px rgba(255, 179, 71, 0.35);
+  transition: color 1.6s ease, text-shadow 1.6s ease;
+}
+
+.s4-stat-label {
+  margin: 0.35rem 0 0 0;
+  /* vw->vmin, see .candle-rig's own comment for why/the conversion math. */
+  font-size: clamp(0.85rem, 1.48vmin, 1rem);
+  line-height: 1.4;
+  color: #c9b8d9;
+  transition: color 1.6s ease;
+}
+
+.section-4.is-warm .s4-intro-text h2 {
+  color: #5b3a29;
+}
+
+.section-4.is-warm .s4-stat-number {
+  color: #a8531c;
+  text-shadow: none;
+}
+
+.section-4.is-warm .s4-stat-label {
+  color: #7a5c46;
+}
+
+@media (max-width: 700px) {
+  .s4-stats {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.3rem;
+  }
+
+  /* "the statistic... looks weird on mobile" — confirmed via a live
+     getBoundingClientRect check (same-origin iframe at phone width) that
+     each tile was rendering 144px tall regardless of its actual text
+     content, leaving a huge dead gap before the next tile. Root cause:
+     .s4-stat's own `flex: 1 1 9rem` sets a 9rem *flex-basis*, which sizes
+     along the flex container's MAIN axis — on desktop that's width (the
+     row layout), so 9rem there is a sane minimum width, but .s4-stats
+     switches to flex-direction:column here, making that same axis
+     vertical — the exact same 9rem then forces a 144px MINIMUM HEIGHT on
+     every tile instead. `flex: 0 0 auto` drops the flex-basis back to the
+     content's own natural height. */
+  .s4-stat {
+    flex: 0 0 auto;
+    max-width: 20rem;
+  }
+}
+
+/* "Make sure the words never overlap the candle" — rather than trying to
+   guarantee two independent position:sticky elements (this text and
+   .candle-rig) always un-stick in a safe order (this project has hit real
+   bugs before trusting sticky-unstick timing on paper), main.js measures
+   the live pixel gap between this text and the candle system (flame/crew
+   included) on every scroll tick and toggles this class the instant that
+   gap gets too tight — see the .is-crowded toggle in main.js for the full
+   reasoning. The text just fades itself out of the way whenever the two
+   are about to touch, so there's nothing left on screen to overlap.
+   Two classes deep, same as `.reveal-text.is-revealed` below/above it,
+   so this wins on source order for the pixels that matter (both rules
+   only ever apply to the identical .s4-intro-text element anyway). */
+.s4-intro-text.is-crowded {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Same "second layer that fades in" crossfade trick as
+   .bocr-river-wrap::after above, and for the same reason (CSS can't
+   transition between two different gradients directly). No mask needed
+   here — section-4 is a plain rectangle, not shaped art with its own
+   transparent gaps. */
+.section-4::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--room-warm);
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+
+.section-4.is-warm::before {
+  opacity: 1;
+}
+
+/* position: sticky instead of fixed+JS-toggled-opacity (two earlier
+   attempts at "follows the user until they exit the section" both read
+   as the candle popping in/out of nowhere, because both were really just
+   a JS visibility switch dressed up with a transition, or a transition on
+   top of one). Sticky needs no such switch at all: the candle is genuine,
+   ordinary content inside section-4, so it's simply *there* the instant
+   its position scrolls into view — same as any other element on the page
+   — then, once continuing to scroll would carry it off the *top* of the
+   viewport, it holds in place instead of scrolling away, for as long as
+   section-4 (its containing block) has room left to hold it there. Near
+   the very end of section-4 it naturally un-sticks and scrolls off with
+   the rest of the section's content — again no JS, no fade, just how
+   sticky positioning works. opacity/pointer-events are now permanent, not
+   state main.js flips — the browser's own scroll clipping is what makes
+   it invisible before you reach it and after you've scrolled past, not a
+   class toggle.
+   top, not bottom: .candle-rig is the section's only content, so its
+   normal flow position is at section-4's own top edge — meaning it's the
+   *top* of the viewport it would scroll past first as you scroll down,
+   which needs `top` sticky to hold, not `bottom` (confirmed live: `bottom`
+   alone did nothing here, the element just scrolled away with the rest of
+   the section). To still land it low on screen ("closer to the bottom"
+   per request) despite using `top`, main.js's candle-follow block computes
+   an exact `top` in px from the candle's own rendered height each time it
+   might change (load/resize) — see positionStickyTop() there. The value
+   below is just a reasonable placeholder for the instant before that JS
+   runs; it isn't what actually determines the resting position. */
+.candle-rig {
+  position: sticky;
+  left: 50%;
+  top: 75vh;
+  /* Raised from clamp(46px, 4.2vw, 84px) — read as too small — then cut
+     ~20% (was clamp(80px, 7.5vw, 150px)) per "make the candle ... smaller
+     by like 20%".
+     2026-09-13: middle term switched vw->vmin ("this whole part looks very
+     different on different monitor sizes... make it dynamically adjust to
+     the screen's height AND width" — a pure vw clamp only reacts to width,
+     so a short-but-wide monitor and a tall-but-narrow one at the same
+     width render identically even though they have very different
+     proportions). vmin = whichever of vw/vh is smaller, so this now
+     shrinks to fit a short viewport too, not just a narrow one.
+     Coefficient rescaled by 19.2/10.8 (=1.7778, the vw->vmin conversion
+     factor AT this file's 1920x1080 tuning reference, where 1vmin=1vh=
+     10.8px vs 1vw=19.2px) so the same 1920x1080 "looks right" appearance
+     is preserved exactly — 6vw -> 10.67vmin, same px result at 1920x1080,
+     now also correctly smaller on any shorter-than-1080 window regardless
+     of width, and vice versa. Same conversion applied to every other
+     desktop-scope size in this candle/crew/text block below. */
+  width: clamp(64px, 10.67vmin, 120px);
+  transform: translateX(-50%);
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 5;
+}
+
+/* Purely a transform target: main.js writes a fresh translate(x, y) here
+   every animation frame while section-4 is in view — a small mouse-
+   follow spring wobble (leans gently toward the cursor, clamped to a
+   short range, eases back to center on its own once the cursor moves
+   away) rather than reacting to scroll, which read as an unnatural jolt.
+   Kept on its own element so it never has to know about or fight
+   .candle-rig's own translateX(-50%) centering above. */
+.candle-physics {
+  position: relative;
+}
+
+/* The crew's party-favor cameo, revealed once the candle is lit (see the
+   SPARKS_NEEDED handler in main.js). A loose overlapping cluster, hand-
+   placed rather than landmark-measured — same reasoning as the reverted
+   2026-09-07 .candle-crew attempt documented in memory: these are 3
+   independent standalone poses, not one continuous scene, so eyeballed
+   clustering is the right precision level, not pixel math. Sits centered
+   on the candle's own sticky anchor (left:50%/translateX(-50%), same
+   trick as .candle-rig itself) and much wider than the candle's own box
+   so characters can spread well past it; bottom:0 so everyone shares the
+   same "standing" line as the candle's own base. Opacity-only fade-in
+   (no transform/scale) deliberately avoids the "pop-in" look this
+   project spent a long time steering away from elsewhere in section-4 —
+   this one IS meant to be a discrete reveal moment (friends showing up
+   when the candle lights), not ambient always-there content, so a fade
+   trigger is appropriate here unlike the candle's own visibility. */
+.s4-crew {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: min(150vw, 1500px);
+  height: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+
+.s4-crew.is-revealed {
+  opacity: 1;
+}
+
+.s4-crew-canvas {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  display: block;
+}
+
+/* 2026-09-08: pulled the whole trio in closer to the candle (was a much
+   wider spread — -235%/75%/-45%) per "make them stand closer to the
+   candle", and nudged Princess further right + down on top of that per
+   "move princess slightly right" (was -45%/-52%, further left and higher
+   than the other two's own vertical resting point).
+   2026-09-08, same day, follow-up: doubled every width per "make them 2
+   times bigger" — translate() percentages are relative to each canvas's
+   OWN box (per the CSS spec), so they scale proportionally for free and
+   didn't need touching to keep the same relative composition, just bigger. */
+/* Widths cut ~20% (240/460->192/368, 280/540->224/432) per "make the
+   candle and the three mascots smaller by like 20%". X pulled in further
+   for Milky (-120%->-85%) per "move milky even closer to the candle". */
+/* Cut a further ~38% (all 3 clamp() widths scaled by 0.62) per "Princess
+   overlaps the text too much" — measured live (getBoundingClientRect on
+   the actual canvases + a pixel-scan of each clip's own frame for where
+   the drawn character actually starts, since the canvas box itself is
+   much taller than the ink inside it): at a 1920px-wide viewport,
+   Princess's own visible ink started at y≈221px while the stats text
+   block above her ends at y≈476px — a ~255px overlap, not just a
+   crowding issue. translate() offsets are unchanged — they're percentages
+   of each canvas's OWN box (see the comment above), so they keep the same
+   relative composition automatically as the widths shrink, same as every
+   past resize here. 0.62 (not lower) is deliberately the largest scale
+   that still clears the text with a small margin (~30px at that same
+   viewport) rather than shrinking further than needed — Milky/Baby were
+   never actually overlapping (their own tops already sat well below the
+   text), so they only gain more clearance at this same factor, not less. */
+/* Widths scaled back up 1.5x per "make princess, baby, and milky bigger"
+   — worth knowing before nudging this again: they were previously cut to
+   ~0.62x specifically because Princess's own ink was measured overlapping
+   the stats text above (.s4-intro-text) by ~255px at full size. That text
+   sits at z-index:6, above .s4-crew's own stacking (candle-rig's z-index:5
+   — see .s4-intro-text's own comment), so growing the crew back up can't
+   actually hide/cover the text again, only bring back some visual
+   crowding behind/around it — the two problems aren't the same. translate()
+   offsets are unchanged (percentages of each canvas's OWN box, so they
+   keep the same relative composition automatically as widths grow, same
+   as every past resize here). */
+/* vw->vmin on all 3 widths below, see .candle-rig's own comment for
+   why/the conversion math (17.81vw->31.66vmin, 20.94vw->37.23vmin). */
+.s4-crew-milky {
+  width: clamp(179px, 31.66vmin, 342px);
+  transform: translate(-85%, 0) rotate(-4deg);
+}
+
+.s4-crew-baby {
+  width: clamp(179px, 31.66vmin, 342px);
+  transform: translate(25%, 4%) rotate(5deg);
+}
+
+/* Y eased way down from -38% per "move princess down a lot more" — she's
+   still the tallest of the three (whole-stool canvas) so a small negative
+   offset keeps her from clipping below the shared standing line, but far
+   less "raised up behind the other two" than before. */
+.s4-crew-princess {
+  width: clamp(209px, 37.23vmin, 402px);
+  transform: translate(-15%, -8%);
+}
+
+@media (max-width: 700px) {
+  /* "move milky slightly to the left" — mobile only, -65% -> -75%. */
+  .s4-crew-milky {
+    width: clamp(134px, 38.7vw, 224px);
+    transform: translate(-75%, 0) rotate(-4deg);
+  }
+
+  .s4-crew-baby {
+    width: clamp(134px, 38.7vw, 224px);
+    transform: translate(20%, 4%) rotate(5deg);
+  }
+
+  .s4-crew-princess {
+    width: clamp(149px, 44.7vw, 254px);
+    transform: translate(-10%, -8%);
+  }
+}
+
+.candle-only {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: pointer;
+}
+
+/* "Click!" hint, blinking above the candle until it's actually clicked.
+   Absolutely positioned against .candle-rig itself (sticky, so it already
+   qualifies as this element's containing block) rather than
+   .candle-physics, so it stays fixed above the candle's resting position
+   instead of following the physics rig's own per-frame mouse-follow wobble
+   — a blinking prompt jittering around would read as distracting rather
+   than inviting. white-space: nowrap plus centering via left:50% +
+   translateX(-50%) keeps it centered over the candle's own narrow
+   clamp(64px, 10.67vmin, 120px) box (see .candle-rig) without wrapping.
+   z-index above .s4-crew's implicit stacking (both are plain
+   position:static children painting in DOM order otherwise, and this one
+   comes last) so it's never covered once the crew reveals. pointer-events:
+   none so it never intercepts the click meant for the candle underneath
+   it — text sits close enough above the candle's own top edge that
+   without this, a click aimed slightly high could land on the hint
+   instead and silently do nothing. Color/glow matches --room-warm and the
+   stat-number glow already used elsewhere in this dark room (see
+   .s4-stat-number), so it reads as part of the same lit-text family
+   instead of a bolted-on UI label. */
+.candle-click-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  margin: 0 0 0.6em 0;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: clamp(0.95rem, 2.5vmin, 1.3rem);
+  color: var(--room-warm);
+  text-shadow: 0 0 10px rgba(253, 237, 203, 0.6), 0 0 18px rgba(255, 200, 120, 0.4);
+  pointer-events: none;
+  z-index: 10;
+  animation: candle-click-hint-blink 1.1s ease-in-out infinite;
+}
+
+@keyframes candle-click-hint-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}
+
+/* Added by main.js the instant the candle is actually clicked (state
+   leaves 'unlit') — animation left running underneath is harmless since
+   display:none removes it from rendering entirely regardless. */
+.candle-click-hint.is-hidden {
+  display: none;
+}
+
+/* Both the spark (plays once on click) and fire (loops after) canvases —
+   sized/positioned by positionFlame() in main.js so their own drawn
+   flame lands right at the candle's wick tip, not at their own canvas's
+   geometric center (see the anchor-point comment in main.js). Only one
+   is ever display:block at a time; JS toggles between them. */
+.candle-flame-canvas {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+}
+
+/* Hidden <video> sources for the canvases above — never shown directly
+   (their baked-in black backgrounds are only meant to be seen through the
+   black-keying canvases), just played off-screen so each canvas can
+   sample whatever frame is currently decoded. Same off-screen-not-hidden
+   treatment as .hero-milky's and .m2-stage's own hidden video sources:
+   display:none is avoided because some browsers pause a display:none
+   media element's decoding entirely. (These five used to be animated GIF
+   <img>s instead — see the long comment on startBlackKeyedCanvas in
+   main.js for why that got dropped.) */
+.bocr-gif-source {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 852px;
+  height: 480px;
+}
+
+
+/* Footer: closes out the page with the same grass-into-ground motif as the
+   hero's own opening (.hero-grass/.hero::after above), just inverted —
+   dirt-brown instead of the hero's flat green, since this is the literal
+   bottom of the page rather than a mid-scene ground floor. The two grass
+   images ship pre-cropped to their real content band
+   (footer-grass-pc.png/footer-grass-phone.png, cropped from the
+   3840x2160 originals in assets/Homepage/Seperate Assets/ down to just the
+   visible grass+crew strip, y500-1240 of 2160 — the source files are
+   mostly transparent padding above and below that band) rather than
+   relying on object-fit/object-position guesswork against a mostly-empty
+   canvas. Swapped via a <picture><source media> in index.html (not CSS
+   display:none — a display:none <img> still downloads its file, so two
+   plain <img> tags used to cost every visitor both images; <picture> only
+   ever fetches the one that matches). .footer-grass-phone is the same
+   crew packed into a narrower horizontal spread, made for narrow
+   viewports. */
+/* No background of its own — .footer-grass-wrap below paints its own
+   transparent-sky-to-brown-dirt gradient scoped to the grass artwork's own
+   box, and .footer-ground (below that) is a separate flat dirt fill for
+   everything after it. Giving *this* element a background too used to
+   paint solid brown behind the ENTIRE footer, including the ~50% of the
+   grass artwork above its own jagged edge (flower stems on an otherwise
+   transparent "sky") — reported as "the brown exited the grass." Letting
+   whatever precedes the footer (section-4's own dark room) show through
+   that sky region instead is what actually confines the dirt to the
+   ground. */
+.site-footer {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Sizing context for the dirt gradient below — matches whichever image the
+   <picture> above actually rendered, so the gradient's percentage stops
+   stay correct relative to the visible image regardless of which one that
+   is. */
+/* Reverted the earlier margin-top:-8vh ("move the grass up so more brown
+   shows at the top") — .site-footer's overflow:hidden meant that crop was
+   silently deleting real content off the top of the image (reported back
+   as "the footer image got cut off"), not just trimming empty sky. Back
+   to sitting at its normal, uncropped flow position. */
+.footer-grass-wrap {
+  position: relative;
+  z-index: 0;
+}
+
+/* The dirt-brown ramp — but only *below* the artwork's own grass line, not
+   filling the wrap's whole box the way an earlier version did. The
+   footer-grass images are cropped tight around their content, but that
+   content is mostly flower stems/character silhouettes on a transparent
+   "sky" for their own top ~55% — pixel-row-scanning the actual alpha
+   channel found the image doesn't become a *continuous* opaque grass strip
+   until y≈400-440 of 740 (≈54-59% down), before which day only ~0-30% of
+   each row is opaque (just the sparse stems). Painting brown across the
+   wrap's full height showed straight through that mostly-transparent sky
+   region as a solid brown rectangle behind the flowers — reported as "the
+   brown exited the grass." Starting the ramp at that same 52-60% band
+   keeps it confined to (and below) the actual jagged grass edge.
+   **Re-tuned after a "brown is bleeding above the green on the left"
+   report**: the 52-60% figure above came from a limited set of sample
+   columns and missed the actual worst case. Re-scanned footer-grass-pc.png
+   properly this time — full alpha-channel scan across 192 x-columns (every
+   20px of the 3840px width), looking for where each column first goes
+   *continuously* opaque (30+ consecutive solid rows, so a single stray
+   stem pixel doesn't count) rather than eyeballing a couple of columns.
+   The grass edge is genuinely jagged (it's hand-drawn hills, not a flat
+   line) and its latest/lowest onset across the whole image is y=437 of
+   740 (58.9%, near the right edge) — already past where the OLD ramp
+   (52-60%) was already fully opaque brown (60%), so at that column brown
+   was painting through for several rows before the real grass arrived.
+   The left quarter specifically (x<960, where this was reported) has its
+   own worst case at y=408 (55.1%), also inside the old 52-60% ramp band.
+   New stops start the ramp at 62% (past the confirmed worst case with a
+   real margin, not just past the specific column that happened to be
+   sampled) and reach full opacity by 70%.
+   Percentages are stable across viewport widths because
+   .footer-grass-wrap's aspect ratio is fixed (the image itself sets it,
+   height:auto against a constant-aspect-ratio source crop).
+
+   Two full pseudo-elements, not one, so the "sky" region above that ramp
+   can track the candle's own lit/unlit color and actually crossfade
+   between them (CSS can't transition between two different background
+   values directly — same reasoning as .section-4::before/
+   .bocr-river-wrap::after above, this is the same two-layer-opacity-
+   crossfade trick applied a third time). Each layer stacks its own flat/
+   gradient "sky" color *underneath* (via background-color/a second
+   background-image, not part of the same gradient) the shared brown ramp
+   — ::before is the default/unlit state (the exact horizontal
+   edge-mid-edge gradient section-4 itself uses, so the footer's sky
+   genuinely continues that section's color, not a flat approximation),
+   ::after is the lit state (--room-warm, matching the peach the room
+   itself crossfades to), starting at opacity:0 and fading in only once
+   `.is-warm` is mirrored onto #site-footer (see the candle-ignite block in
+   main.js, which now adds it there alongside #section-4/.bocr-river-wrap).
+   z-index -2/-1 (not both -1) so ::after reliably paints *over* ::before
+   while both still sink behind .footer-grass-wrap's own real children
+   (the img) — relies on the wrap's explicit z-index:0 above to actually
+   scope that, same stacking-context gotcha noted elsewhere in this file. */
+.footer-grass-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      transparent 62%,
+      #8a5a34 70%,
+      #6b4423 85%,
+      #3f2712 96%,
+      #3f2712 100%
+    ),
+    linear-gradient(to right, var(--room-purple-edge) 0%, var(--room-purple-mid) 50%, var(--room-purple-edge) 100%);
+}
+
+.footer-grass-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 62%,
+    #8a5a34 70%,
+    #6b4423 85%,
+    #3f2712 96%,
+    #3f2712 100%
+  );
+  background-color: var(--room-warm);
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+
+.site-footer.is-warm .footer-grass-wrap::after {
+  opacity: 1;
+}
+
+.footer-grass {
+  display: block;
+  width: 100%;
+  height: auto;
+  position: relative;
+}
+
+/* Flat dirt fill for everything *after* the grass artwork (.footer-content/
+   .footer-copyright) — separate element from .footer-grass-wrap's own
+   gradient above specifically so this solid color starts exactly where
+   that gradient's own box ends, not a percentage guess against the
+   footer's total (variable, text-dependent) height. Matches
+   .footer-grass-wrap::before's own darkest stop so there's no visible seam
+   at the join. */
+.footer-ground {
+  background: #3f2712;
+}
+
+/* Placeholder footer content per request — real copy/links to come later. */
+.footer-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.5rem;
+}
+
+.footer-brand {
+  flex: 1 1 240px;
+}
+
+.footer-logo {
+  width: 96px;
+  height: auto;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.footer-brand p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #e7cdb0;
+  max-width: 26rem;
+}
+
+.footer-links {
+  flex: 0 1 160px;
+}
+
+.footer-links h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.75rem;
+  color: #f3d9b8;
+}
+
+.footer-links ul {
+  list-style: none;
+}
+
+.footer-links li + li {
+  margin-top: 0.5rem;
+}
+
+.footer-links a {
+  color: #e7cdb0;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.footer-links a:hover {
+  color: #fff5e6;
+  text-decoration: underline;
+}
+
+.footer-copyright {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #c9a479;
+  padding: 1.5rem 1.5rem 0;
+  margin: 1rem 1.5rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* "Website by: [Lunaris Digital logo, hyperlinked]" — deliberately no
+   visible URL text, per request ("just use the logo image as the
+   hyperlink"), so the <img> itself is the whole link body.
+   assets/Footer/lunaris-digital-logo.png is a from-scratch alpha matte
+   (the 3 source files the user dropped in assets/Footer/ were checked
+   against this exact background color, #3f2712 — the Colour variant's
+   dark end of its own gradient nearly disappears into it and the Black
+   variant is almost invisible outright; only a plain white mark reads
+   cleanly here, matching this footer's own existing tan/cream text
+   palette) built by keying the White variant's baked-in solid black
+   backing out to real transparency (it's the one file of the three with
+   no alpha channel at all — Colour/Black already had one).
+   2026-09-14: moved from its own line next to .footer-copyright (read as
+   "too small"/buried at the very bottom) up into .footer-brand, right
+   under the site's own tagline — the placement the user picked over two
+   alternatives (bigger-in-place, or a separate full-width sub-bar). Sized
+   up from the copyright-matching 0.75rem/18px it started at to something
+   that actually reads as its own credit line rather than fine print. */
+.footer-credit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #e7cdb0;
+  margin-top: 0.85rem;
+}
+
+.footer-credit a {
+  display: flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.footer-credit-logo {
+  height: 26px;
+  width: auto;
+  display: block;
+  opacity: 0.92;
+  transition: opacity 0.2s ease;
+}
+
+.footer-credit a:hover .footer-credit-logo,
+.footer-credit a:focus-visible .footer-credit-logo {
+  opacity: 1;
+}
+
+/* Cursor-follow fire-spark particles, section-4's dark room only, before
+   the candle is lit — replaces an earlier single-blob-with-CSS-flicker
+   version per feedback that it "looked like a circle" and read as janky/
+   low-framerate (a handful of keyframe stops on a blurred, animated
+   circle is an inherently chunky look, not an actual framerate problem,
+   but the fix either way is to stop drawing one big shape). This is a
+   small pool of plain divs (created once in main.js, positioned+animated
+   individually per spawn) rather than canvas/SVG particles — cheap enough
+   for a mousemove-driven effect, and every spawn is just a CSS animation
+   the browser can run on the compositor (`transform`/`opacity` only). */
+.s4-embers {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  overflow: hidden;
+}
+
+.s4-ember {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #fff6dd 0%,
+    #ffc25c 40%,
+    #ff7a1a 75%,
+    rgba(255, 90, 20, 0) 100%
+  );
+  box-shadow: 0 0 6px rgba(255, 140, 40, 0.85);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* Each spawn's actual flight (direction/distance/speed, all randomized
+   per-particle) is driven by main.js via Element.animate() (Web Animations
+   API) directly on the element, not a CSS class + `@keyframes` — a first
+   version used the class-toggle-plus-forced-reflow trick to restart a CSS
+   animation on a reused element, which turned out to be the real cause of
+   a reported "clicking the candle got laggy" (forcing a synchronous layout
+   recompute on every single spawn, dozens of times a second while the
+   mouse is moving). `.s4-ember`'s own opacity:0 above is what a pooled
+   particle looks like between spawns; `Element.animate()` takes it from
+   there frame to frame without needing any CSS-side animation rule at all. */
+
+@media (max-width: 700px) {
+  /* No cursor on touch devices — nothing to follow, so this never
+     activates there (see the pointer:fine check in main.js); the rule
+     just keeps particles harmlessly small if that check were ever
+     bypassed. */
+  .s4-ember {
+    width: 5px;
+    height: 5px;
+    margin: -2.5px 0 0 -2.5px;
+  }
+}
+
+/* ---- Contact page (contact.html) ------------------------------------ */
+
+/* Cropped to a wide strip rather than the source art's full 3840x2160 (16:9)
+   frame — a 100vh-tall banner (an earlier version) read as a second hero,
+   not a banner. sky/you/milky-crew/glow (see contact.html) were all
+   exported from that one shared canvas already composed together
+   (Milky+crew flying in to meet "you"'s reaching hand, Creation-of-Adam-
+   style, with the glow clip centered on the fingertips), so cropping is
+   just a matter of picking a shorter aspect-ratio box — object-fit:cover
+   below still keeps every layer pixel-aligned to the others (same source,
+   same box, same crop), just with the top of the sky and the very bottom
+   of the grass trimmed off. The 3840/1050 ratio + 55% vertical anchor (see
+   .contact-banner-layer) were picked by literally cropping a composited
+   still at several candidate windows and eyeballing which one keeps both
+   heads, the "YOU" bubble and the touching fingers in frame — see the
+   ffmpeg crop test this was built from. */
+.contact-banner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3840 / 1050;
+  min-height: 220px;
+  overflow: hidden;
+  /* Sky-blue fallback so there's no flash of white while the (biggest,
+     ~925KB) milky-crew layer is still loading in. */
+  background: linear-gradient(#a9def2 0%, #c9ecf9 70%, #dff4fb 100%);
+  /* Contains mix-blend-mode:screen on .contact-banner-glow below to this
+     section's own paint — without it, "screen" blends against whatever
+     the browser paints earlier in the whole page's stacking order, not
+     just the layers meant to glow. */
+  isolation: isolate;
+  /* Amount .contact-banner-you/-milky drift toward each other at the
+     midpoint of their float cycle — shared by both animations below so
+     the two are always moving equal-and-opposite (see the keyframes). */
+  --contact-drift: clamp(10px, 1.77vw, 34px);
+}
+
+.contact-banner-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Same anchor on every layer (bg/you/milky/glow) — see the container
+     comment above for how this value was picked. */
+  object-position: center 55%;
+  display: block;
+}
+
+/* Both characters were already drawn almost touching — that source pose
+   is the closest they ever get. The float pulls them BACKWARD (apart)
+   from there and returns them to that same original spot, rather than
+   drifting them past it to some closer/overlapping pose (an earlier
+   version did that and the two cutouts visibly clipped into each other,
+   since they were never drawn to overlap cleanly). Equal and opposite of
+   .contact-banner-milky below so both sides pull away by the same amount. */
+.contact-banner-you {
+  animation: contact-float-you 7s ease-in-out infinite;
+}
+
+.contact-banner-milky {
+  animation: contact-float-milky 7s ease-in-out infinite;
+}
+
+@keyframes contact-float-you {
+  /* 0%/100% is the original drawn position — their closest point, already
+     "touching" — hidden for an instant right as they land back on it so
+     the contact itself reads as a flash (see .contact-banner-glow) rather
+     than the two flat cutouts snapping together. */
+  0% { transform: translateX(0); opacity: 0; }
+  6% { transform: translateX(0); opacity: 1; }
+  40%, 60% { transform: translateX(calc(-1 * var(--contact-drift))); opacity: 1; }
+  94% { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(0); opacity: 0; }
+}
+
+@keyframes contact-float-milky {
+  0% { transform: translateX(0); opacity: 0; }
+  6% { transform: translateX(0); opacity: 1; }
+  40%, 60% { transform: translateX(var(--contact-drift)); opacity: 1; }
+  94% { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(0); opacity: 0; }
+}
+
+/* Plain light-burst clip on a black backing (no alpha channel needed) —
+   screen blend drops pure black to fully transparent and adds the glow's
+   own brightness on top of everything painted before it, same idea as the
+   header logo's multiply trick but for an additive light instead of a
+   subtractive ink line. The clip loops on its own (autoplay/loop on the
+   <video>, see contact.html) regardless of this opacity pulse — the pulse
+   is what actually times the "flash" to the same 7s cycle as the
+   characters landing back at their original spot, not the video's own
+   internal timing. */
+.contact-banner-glow {
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: contact-flash-pulse 7s ease-in-out infinite;
+}
+
+@keyframes contact-flash-pulse {
+  0% { opacity: 1; }
+  10% { opacity: 0.5; }
+  40%, 60% { opacity: 0.35; }
+  90% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-banner-you,
+  .contact-banner-milky,
+  .contact-banner-glow {
+    animation: none;
+  }
+}
+
+.contact-section {
+  padding: clamp(3rem, 4.58vw, 5.5rem) clamp(1.5rem, 2.5vw, 3rem);
+  background: linear-gradient(to bottom, #dff4fb 0%, #fdedcb 100%);
+  display: flex;
+  justify-content: center;
+}
+
+.contact-card {
+  max-width: 34rem;
+  text-align: center;
+  color: #5b4636;
+}
+
+.contact-card h2 {
+  font-size: clamp(1.6rem, 1.83vw, 2.2rem);
+  margin-bottom: 0.75rem;
+}
+
+.contact-card p {
+  font-size: clamp(0.95rem, 0.88vw, 1.05rem);
+  line-height: 1.5;
+  margin-bottom: 1.75rem;
+}
+
+.contact-cta {
+  display: inline-block;
+  background: #df760a;
+  color: #fffaf0;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 0.85rem 2rem;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(223, 118, 10, 0.35);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.contact-cta:hover {
+  background: #f08a1e;
+  transform: translateY(-2px);
+}
+
+.contact-socials {
+  display: flex;
+  justify-content: center;
+  gap: clamp(1rem, 1.46vw, 1.75rem);
+  margin-top: 2rem;
+}
+
+.contact-socials a {
+  color: #5b4636;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: color 0.2s ease;
+}
+
+.contact-socials a:hover {
+  color: #df760a;
+}
+
+/* FAQ, right below the contact card — plain cream continuation of
+   .contact-section's own gradient end color (#fdedcb) so the two sections
+   read as one continuous block, not two visually distinct chunks. Native
+   <details>/<summary> (see contact.html) rather than a JS-toggled accordion
+   — this page doesn't load js/main.js at all (nothing here needs canvas
+   keying or scroll-linked video), and <details> gets the expand/collapse
+   behavior, keyboard support, and even in-page search matching for free. */
+.faq-section {
+  padding: clamp(1rem, 1.67vw, 2rem) clamp(1.5rem, 2.5vw, 3rem) clamp(4rem, 5vw, 6rem);
+  background: #fdedcb;
+  display: flex;
+  justify-content: center;
+}
+
+.faq-wrap {
+  width: 100%;
+  max-width: 42rem;
+  color: #5b4636;
+}
+
+.faq-wrap h2 {
+  text-align: center;
+  font-size: clamp(1.6rem, 1.83vw, 2.2rem);
+  margin-bottom: clamp(1.5rem, 2.08vw, 2.5rem);
+}
+
+.faq-item {
+  background: #fffaf0;
+  border-radius: 1rem;
+  padding: 0 1.25rem;
+  margin-bottom: 0.9rem;
+  box-shadow: 0 2px 10px rgba(60, 40, 20, 0.08);
+}
+
+/* Default <details> marker (a browser-drawn triangle) swapped for a
+   +/x drawn via ::after below — list-style:none covers Firefox/Safari,
+   the ::-webkit-details-marker rule covers Chrome, which ignores
+   list-style on <summary>. */
+.faq-question {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 0;
+  font-weight: 600;
+  font-size: clamp(0.95rem, 0.92vw, 1.1rem);
+}
+
+.faq-question::-webkit-details-marker {
+  display: none;
+}
+
+.faq-question::after {
+  content: "+";
+  flex-shrink: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: #df760a;
+  transition: transform 0.25s ease;
+}
+
+.faq-item[open] .faq-question::after {
+  transform: rotate(45deg);
+}
+
+.faq-answer {
+  margin: 0;
+  padding-bottom: 1.15rem;
+  line-height: 1.5;
+  color: #6b4423;
+  font-size: clamp(0.9rem, 0.83vw, 1rem);
+}
+
+/* ---- Under-construction placeholder (under-construction.html) ------- */
+
+/* Same sky-to-cream gradient .contact-section uses, and full-height minus
+   the fixed header so the card sits centered in the viewport on first
+   load rather than needing a scroll — this page has nothing else below
+   it to scroll to. */
+.uc-section {
+  min-height: 100vh;
+  padding: calc(76px + clamp(2rem, 3.33vw, 4rem)) clamp(1.5rem, 2.5vw, 3rem) clamp(3rem, 3.33vw, 4rem);
+  background: linear-gradient(to bottom, #dff4fb 0%, #fdedcb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.uc-card {
+  max-width: 40rem;
+  text-align: center;
+  color: #5b4636;
+}
+
+.uc-image {
+  width: 100%;
+  max-width: 26rem;
+  height: auto;
+  display: block;
+  margin: 0 auto clamp(1.5rem, 2.08vw, 2.5rem);
+}
+
+.uc-card h1 {
+  font-size: clamp(1.8rem, 2.17vw, 2.6rem);
+  margin-bottom: 0.75rem;
+}
+
+.uc-card p {
+  font-size: clamp(0.95rem, 0.92vw, 1.1rem);
+  line-height: 1.5;
+  margin-bottom: 2rem;
+}
+
+/* ---- The Cast — Milky (the-cast-milky.html) --------------------------
+   First of 3 planned character pages (Baby/Princess later, see the
+   .tcm-switcher pills in the hero below) — reuses the homepage's own sky
+   gradient, grass art, Fredoka type scale and several existing component
+   classes (.reveal-text, .contact-section/.contact-card/.contact-cta/
+   .contact-socials for the closing CTA) rather than inventing a parallel
+   design system, per the brief to "follow the home page" and "keep it
+   minimal." `tcm-` prefixes everything genuinely new to this page, same
+   convention as `bocr-`/`s2-`/`s4-`/`contact-`/`faq-`/`uc-` elsewhere in
+   this file. All clamp()s below follow this file's own established
+   convention (see MEMORY/the clamp-viewport-scaling-fix round): the vw/vh
+   term is picked so the cap engages exactly at the 1920x1080 reference
+   (coefficient = max_px / 19.2 for vw, / 10.8 for vh) — never copied in
+   from a different max without recomputing. Reused several exact clamp()
+   values verbatim from elsewhere in this file (hero h1/tagline size,
+   section padding, body text, nav-scale eyebrow text) rather than
+   independently re-tuning the same scale twice. */
+
+.tcm-eyebrow {
+  font-size: clamp(0.85rem, 0.83vw, 1rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #df760a;
+  margin-bottom: 0.5rem;
+}
+
+.tcm-eyebrow-sub {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
+  color: #5b4636;
+}
+
+/* Hero: same sky gradient + grass/sun art as .hero (section-1 on the
+   homepage), but not full-viewport-height or scroll-jacked — this is a
+   content page, not a landing animation, so it's sized to its own content
+   (image+text pair) with the fixed header's own 76px clearance baked into
+   the top padding, same pattern as .uc-section/.contact-section. */
+.tcm-hero {
+  position: relative;
+  overflow: hidden;
+  padding: calc(76px + clamp(2rem, 3.33vw, 4rem)) clamp(1.5rem, 2.5vw, 3rem) 0;
+  background: linear-gradient(#a9def2 0%, #c9ecf9 70%, #dff4fb 100%);
+}
+
+.tcm-hero-sun {
+  position: absolute;
+  top: 4%;
+  left: 3%;
+  width: clamp(70px, 9.17vw, 176px);
+  z-index: 1;
+}
+
+.tcm-switcher {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: clamp(1.5rem, 2.08vw, 2.5rem);
+  flex-wrap: wrap;
+}
+
+.tcm-switcher-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  color: #5b4636;
+  background: rgba(255, 250, 240, 0.7);
+  border: 1px solid rgba(91, 70, 54, 0.15);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.tcm-switcher-pill.is-active {
+  background: #df760a;
+  color: #fffaf0;
+  border-color: transparent;
+}
+
+.tcm-switcher-pill.is-disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.tcm-switcher-pill small {
+  font-size: 0.7em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+}
+
+.tcm-hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 68rem;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(2rem, 4.17vw, 5rem);
+}
+
+.tcm-hero-text {
+  text-align: center;
+  color: #5b4636;
+}
+
+.tcm-hero-text h1 {
+  font-size: clamp(2.5rem, 4.17vw, 5rem);
+  line-height: 1.05;
+}
+
+.tcm-hero-tagline {
+  font-size: clamp(1.1rem, 1.25vw, 1.5rem);
+  max-width: 24rem;
+  margin: 0.75rem auto 0;
+}
+
+.tcm-hero-portrait {
+  width: clamp(240px, 23.96vw, 460px);
+  height: auto;
+  filter: drop-shadow(0 12px 18px rgba(91, 70, 54, 0.2));
+}
+
+/* hero-grass.png's native aspect (1600x933, ~1.72:1) would render ~1120px
+   tall at this page's 1920px reference width if left to its own aspect
+   ratio — fine on the homepage's own .hero-grass (absolutely positioned,
+   height pinned to 18vh of a 100vh section) but this page's hero isn't
+   full-viewport-height, so the same image needs its own explicit height
+   cap + object-fit:cover instead of inheriting that positioning. */
+.tcm-hero-grass {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: clamp(70px, 7.29vw, 140px);
+  object-fit: cover;
+  object-position: top;
+  margin-top: clamp(1.5rem, 2.5vw, 3rem);
+}
+
+@media (max-width: 700px) {
+  .tcm-hero-content {
+    flex-direction: column-reverse;
+    gap: 1rem;
+  }
+
+  .tcm-hero-portrait {
+    width: clamp(180px, 50vw, 260px);
+  }
+
+  .tcm-hero-text h1 {
+    font-size: clamp(2.2rem, 11vw, 3rem);
+  }
+}
+
+/* Personality & Bio: redesigned 2026-10-14 into a pinned scroll-driven
+   sequence (per the redesign brief's "longer scroll... especially the
+   Personality & Bio section") instead of the old single image+bullet-list
+   split. `.tcm-bio` is a flex ROW of two columns that are the same height
+   (flex's own default align-items:stretch) — the right column
+   (.tcm-bio-beats) is tall because its 4 beats each get real scroll
+   room, and because the left column (.tcm-bio-art-col) is forced to match
+   that same height, its sticky child has somewhere to actually travel.
+   This is deliberately plain CSS position:sticky, not true scroll-
+   jacking/preventDefault — same reasoning the homepage's own hero/museum
+   sections use elsewhere in this file for "pinned" effects: it degrades
+   to something still perfectly readable with JS off (first image stays
+   put, all 4 beats are present in the DOM, just no swap/highlight), and
+   needs no continuous rAF transform math, only an IntersectionObserver
+   per beat (see the-cast-milky.js) to decide which art/dot is "active." */
+.tcm-bio {
+  display: flex;
+  max-width: 78rem;
+  margin: 0 auto;
+  background: #fffaf0;
+}
+
+.tcm-bio-art-col {
+  flex: 0 0 clamp(18rem, 32vw, 26rem);
+  position: relative;
+}
+
+.tcm-bio-art-sticky {
+  position: sticky;
+  top: calc(76px + clamp(1.5rem, 3vw, 3rem));
+  padding: clamp(2rem, 3.75vw, 4rem) clamp(1.5rem, 2.5vw, 2.5rem);
+  text-align: center;
+}
+
+.tcm-bio-art-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.tcm-bio-art-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transform: rotate(-4deg) scale(0.92);
+  filter: drop-shadow(0 10px 16px rgba(91, 70, 54, 0.18));
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.tcm-bio-art-img.is-active {
+  opacity: 1;
+  transform: rotate(-4deg) scale(1);
+}
+
+.tcm-bio-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: clamp(1.25rem, 2vw, 2rem);
+}
+
+.tcm-bio-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: rgba(91, 70, 54, 0.2);
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.tcm-bio-dot.is-active {
+  background: #df760a;
+  transform: scale(1.3);
+}
+
+/* Each beat is a full "scroll screen" of its own (min-height, not a fixed
+   height, so a beat with more text never clips) — that's where the
+   section's extra scroll LENGTH actually comes from. Centered content so
+   the line always lands in the same vertical spot the sticky art panel
+   sits at, which is what makes the two columns read as paired rather than
+   independently scrolling past each other. */
+.tcm-bio-beats {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tcm-bio-beat {
+  display: flex;
+  align-items: center;
+  min-height: 72vh;
+  padding: 0 clamp(1.5rem, 3vw, 3.5rem);
+  color: #5b4636;
+}
+
+.tcm-bio-beat h2 {
+  font-size: clamp(1.9rem, 2.5vw, 2.8rem);
+  line-height: 1.2;
+}
+
+.tcm-bio-beat p {
+  font-size: clamp(1.3rem, 1.7vw, 1.9rem);
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.tcm-bio-beat em {
+  color: #df760a;
+  font-style: normal;
+}
+
+/* Mobile: the sticky-panel/tall-beats pairing needs real desktop-style
+   width to read as "paired columns" at all — on a narrow phone the art
+   column would either crush down to nothing or push the sticky panel to
+   a height taller than the viewport (nothing left for it to stick
+   against). Simpler and more reliable to drop the pin entirely here: one
+   static image up top, then the 4 beats stack as plain short paragraphs
+   with the site's usual reveal-text fade, same degrade-gracefully pattern
+   every other complex section on this page already follows for 700px. */
+@media (max-width: 700px) {
+  .tcm-bio {
+    flex-direction: column;
+  }
+
+  .tcm-bio-art-col {
+    flex: none;
+  }
+
+  .tcm-bio-art-sticky {
+    position: static;
+    padding-bottom: 0.5rem;
+  }
+
+  .tcm-bio-art-frame {
+    max-width: 14rem;
+    margin: 0 auto;
+  }
+
+  .tcm-bio-art-img {
+    position: static;
+    opacity: 0;
+    display: none;
+  }
+
+  .tcm-bio-art-img.is-active {
+    opacity: 1;
+    display: block;
+    position: relative;
+  }
+
+  .tcm-bio-dots {
+    display: none;
+  }
+
+  .tcm-bio-beat {
+    min-height: 0;
+    padding: 1.25rem clamp(1.5rem, 6vw, 2.5rem);
+    text-align: center;
+    justify-content: center;
+  }
+
+  .tcm-bio-beat h2 {
+    font-size: clamp(1.6rem, 7vw, 2rem);
+  }
+
+  .tcm-bio-beat p {
+    font-size: clamp(1.1rem, 5vw, 1.3rem);
+  }
+}
+
+/* Origin Story: a manga-style strip built from 3 short clips (see
+   the-cast-milky.html's own comment on .tcm-manga for why these are plain
+   <video>, not black-keyed canvases). One tall panel (the rainy-night
+   rescue) beside two stacked wide panels — a classic manga page rhythm —
+   with bold dark "ink" gutters/borders standing in for hand-drawn panel
+   lines, and a white hard-edged narration box per panel (top-left corner,
+   like a manga caption box) instead of a bottom caption bar, so it reads
+   as part of the comic rather than a photo-with-subtitle. */
+.tcm-origin {
+  padding: clamp(3rem, 4.58vw, 5.5rem) clamp(1.5rem, 2.5vw, 3rem);
+  background: #fdedcb;
+  text-align: center;
+}
+
+.tcm-origin-intro {
+  max-width: 36rem;
+  margin: 0 auto;
+  color: #6b4423;
+  font-size: clamp(0.95rem, 0.88vw, 1.05rem);
+  line-height: 1.5;
+}
+
+.tcm-origin-leadin {
+  font-family: 'Caveat', cursive;
+  font-size: clamp(1.6rem, 1.88vw, 2.25rem);
+  font-weight: 700;
+  color: #5b4636;
+  margin: 1rem 0 clamp(1.5rem, 2.08vw, 2.5rem);
+}
+
+/* A single comic "page": 3 clipped panels stacked top-to-bottom — a wide
+   rectangle, a wedge, then a wide rectangle again — instead of plain
+   horizontal gutters. No drawn border or divider lines — panels sit flush
+   against each other, so the angled clip-path cuts themselves are the
+   only thing marking a panel edge.
+
+   The dividers are deliberately shallow (line A drifts 2% of the page's
+   height across its width, line B drifts 8%) — this used to be 4% and
+   24%, which made line B taper panel 2 down to a near-zero-width point on
+   the right and chewed up most of that clip's own scene. Keeping both
+   drifts small means every panel keeps most of its frame. The two lines
+   are centered on 34% and 66% of the page (not 40%/62%) so panel 2's own
+   share of the strip is the biggest of the three, not the smallest.
+
+   Each panel's own bounding box (top/height below) is sized to just the
+   band that polygon actually needs, NOT the full page (inset: 0 on all 3
+   was the original, broken version of this — every video got stretched
+   to cover the whole page height before its clip-path revealed only a
+   thin sliver of that, blowing each clip up 2-3x and cropping away
+   everything but a tiny zoomed-in center strip). clip-path coordinates
+   here are local to that smaller box (0-100% of ITS OWN height), and each
+   video is pre-cropped (see assets/TheCast/Milky/_source/) to roughly
+   that box's own aspect ratio, so object-fit: cover only trims a little. */
+.tcm-manga {
+  position: relative;
+  max-width: 40rem;
+  margin: 0 auto;
+  aspect-ratio: 37 / 50;
+  background: #fffaf0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transform: rotate(-0.5deg);
+  filter: drop-shadow(0 10px 18px rgba(43, 31, 26, 0.25));
+}
+
+.tcm-panel {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  margin: 0;
+  background: #000;
+  overflow: hidden;
+}
+
+.tcm-panel video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Each panel's box is sized to just the band its own shape needs (see the
+   comment above .tcm-manga) — top/height are % of the whole page, and the
+   clip-path points are % of that panel's OWN box, not the full page. The
+   two ink dividers run left 33%/right 35% (line A) and left 70%/right 62%
+   (line B) of the full page; each panel's clip-path lands exactly on
+   those lines (no inset) so the video fill touches the ink line with no
+   gutter sliver of page showing through. */
+.tcm-panel-1 {
+  top: 0;
+  height: 35%;
+  clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 94.29%);
+}
+
+.tcm-panel-2 {
+  top: 33%;
+  height: 37%;
+  clip-path: polygon(0% 0%, 100% 5.41%, 100% 78.38%, 0% 100%);
+}
+
+.tcm-panel-3 {
+  top: 62%;
+  height: 38%;
+  clip-path: polygon(0% 21.05%, 100% 0%, 100% 100%, 0% 100%);
+}
+
+.tcm-panel figcaption {
+  position: absolute;
+  max-width: calc(100% - 2rem);
+  background: #fffaf0;
+  color: #5b4636;
+  border: 2px solid #2b1f1a;
+  border-radius: 0.35rem;
+  padding: 0.3rem 0.55rem;
+  font-size: clamp(0.78rem, 0.74vw, 0.9rem);
+  font-weight: 600;
+  line-height: 1.3;
+  transform: rotate(-1deg);
+  transform-origin: center;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+  box-shadow: 3px 3px 0 rgba(43, 31, 26, 0.18);
+}
+
+.tcm-panel-1 figcaption {
+  top: 4%;
+  left: 4%;
+  max-width: 60%;
+}
+
+.tcm-panel-2 figcaption {
+  top: 28%;
+  left: 3%;
+  max-width: 42%;
+}
+
+.tcm-panel-3 figcaption {
+  top: 55%;
+  left: 4%;
+  max-width: 60%;
+}
+
+.tcm-origin-link {
+  margin-top: clamp(1.5rem, 2.08vw, 2.5rem);
+  color: #6b4423;
+  font-size: 0.9rem;
+}
+
+.tcm-soon {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(91, 70, 54, 0.1);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 700px) {
+  .tcm-manga {
+    aspect-ratio: 3 / 4.6;
+  }
+
+  .tcm-panel-2 figcaption {
+    max-width: 45%;
+    font-size: 0.72rem;
+    padding: 0.25rem 0.4rem;
+  }
+}
+
+/* Brand Spirit pull-quote + Known For, redesigned 2026-10-14. Same flat
+   blush-pink background as before (deliberately not a shade of the
+   cream/apricot its neighbors .tcm-origin/.tcm-bio use, so the section
+   boundary stays visible) and still the one spot on this page that drops
+   Fredoka for Caveat on the quote — but the quote itself now "scrawls"
+   on word-by-word instead of fading in as one block (the-cast-milky.js
+   wraps each word of .tcm-quote-text in a .tcm-word span and sets
+   --word-i on each; the transition-delay math below is what actually
+   staggers them), the doodle beside it idly wobbles instead of sitting
+   dead-still, and the circle under "3 P's" is a real inline SVG
+   (.tcm-quote-underline, see the-cast-milky.html) that draws itself on
+   via stroke-dashoffset once the quote reveals — all three only fire
+   once, gated the same way everything else on this page is: by
+   .reveal-text's own .is-revealed class from the shared IntersectionObserver
+   in the-cast-milky.js, so nothing here needed a second observer. */
+.tcm-quote {
+  padding: clamp(3rem, 4.58vw, 5.5rem) clamp(1.5rem, 2.5vw, 3rem);
+  background: #fdeef1;
+  text-align: center;
+  overflow: hidden;
+}
+
+.tcm-quote-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  flex-wrap: wrap;
+}
+
+/* Placeholder doodle sitting beside the quote — artist request: a small
+   loose sketch/sticker of Milky mid-mischief (tail up, cheeky grin) to
+   sit next to the "3 P's" line, not a cleaned-up full-body pose like the
+   hero art, more like a margin doodle. Idle wobble only starts once
+   revealed (see .reveal-text.is-revealed below) so it doesn't visibly
+   mid-wobble while still off-screen/invisible. */
+.tcm-quote-doodle {
+  width: clamp(5.5rem, 9vw, 8.5rem);
+  height: auto;
+  transform: rotate(-5deg);
+  filter: drop-shadow(0 8px 14px rgba(91, 70, 54, 0.18));
+}
+
+.tcm-quote-doodle.is-revealed {
+  animation: tcm-doodle-wobble 4.5s ease-in-out infinite;
+}
+
+@keyframes tcm-doodle-wobble {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(4deg) translateY(-4px); }
+}
+
+.tcm-quote-text {
+  font-family: 'Caveat', cursive;
+  font-weight: 700;
+  font-size: clamp(2rem, 3.33vw, 4rem);
+  line-height: 1.3;
+  color: #5b4636;
+  margin: 0;
+}
+
+/* Each word starts invisible/dropped-down and rises into place; --word-i
+   (set inline per span by the-cast-milky.js) staggers the delay so they
+   land left-to-right like they're being written, not all at once. Words
+   only animate once the paragraph itself picks up .is-revealed — before
+   that they stay at their rest (invisible) state, same gate as every
+   other .reveal-text on this page. */
+.tcm-word {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.4em) rotate(-2deg);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition-delay: calc(var(--word-i, 0) * 0.08s);
+}
+
+.tcm-quote-text.is-revealed .tcm-word {
+  opacity: 1;
+  transform: translateY(0) rotate(0deg);
+}
+
+/* "To Milky, life is all about the 3 P's..." has to land as one line — a
+   fixed max-width here (there used to be one) caps the box narrower than
+   that nowrap span needs the moment the wording grows, wrapping mid-
+   phrase (splitting "3" from "P's" onto its own line), which reads as a
+   typo rather than a deliberate break. Leaving width unconstrained lets
+   the paragraph size to its nowrap content; .tcm-quote-inner's own
+   flex-wrap is what keeps it from overflowing — if there's no longer
+   room beside the doodle, the whole paragraph drops to its own row and
+   gets the full section width to work with. The mobile override below
+   lets the line wrap normally again instead of overflowing a narrow
+   screen, where it won't have that extra room to fall back on. */
+.tcm-quote-line1 {
+  white-space: nowrap;
+}
+
+.tcm-quote-accent {
+  position: relative;
+  color: #c2255c;
+}
+
+/* Hand-drawn underline: a real <path>, not a background-image, so it can
+   draw itself on with stroke-dashoffset. 200 is a deliberate overestimate
+   of this path's actual length (~160 units) — using a round number bigger
+   than the true length means the drawn stroke always reaches the path's
+   actual end before the dash pattern repeats, without needing to measure
+   it exactly in JS. */
+.tcm-quote-underline {
+  position: absolute;
+  left: 0;
+  bottom: -0.35em;
+  width: 100%;
+  height: 0.5em;
+  overflow: visible;
+}
+
+.tcm-quote-underline path {
+  fill: none;
+  stroke: #c2255c;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  transition: stroke-dashoffset 0.6s ease 0.5s;
+}
+
+.tcm-quote-text.is-revealed .tcm-quote-underline path {
+  stroke-dashoffset: 0;
+}
+
+@media (max-width: 700px) {
+  .tcm-quote-line1 {
+    white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tcm-quote-doodle.is-revealed {
+    animation: none;
+  }
+
+  .tcm-word {
+    transition-delay: 0s;
+  }
+}
+
+/* Known For: lives inside .tcm-quote now, same reasoning as before (the
+   catchphrase and the traits backing it up share one section/background).
+   Redesigned 2026-10-14 from static badge cards into tap/hover flip
+   cards — front face shows just the (placeholder) illustration, back
+   face reveals the actual trait label, like flipping over a sticker to
+   read its own tag. perspective lives on .tcm-bit itself so the flip has
+   real 3D depth; .tcm-bit-inner is what actually rotates (buttons can't
+   have transform-style:preserve-3d apply to children reliably in every
+   browser if the perspective/preserve-3d split differently, so the
+   rotating layer is a plain span, not the button). Flip triggers on
+   .is-flipped (toggled by the-cast-milky.js on click/tap, since touch
+   has no hover) AND on real mouse hover via the (hover:hover) guard below
+   — gated so touch browsers that fake a lingering hover state after a tap
+   can't leave a card stuck both hovered and flipped. */
+.tcm-bits {
+  margin-top: clamp(3rem, 4.58vw, 5.5rem);
+}
+
+.tcm-bits::before {
+  content: "";
+  display: block;
+  width: 3.5rem;
+  height: 3px;
+  margin: 0 auto clamp(2rem, 3vw, 3.5rem);
+  border-radius: 999px;
+  background: rgba(91, 70, 54, 0.22);
+}
+
+.tcm-bits-hint {
+  color: #8a6f58;
+  font-size: 0.85rem;
+  font-style: italic;
+  margin-top: -0.3rem;
+}
+
+.tcm-bits-grid {
+  max-width: 68rem;
+  margin: clamp(1.5rem, 2.08vw, 2.5rem) auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(1.25rem, 2vw, 2rem);
+}
+
+.tcm-bit {
+  flex: 1 1 15rem;
+  max-width: 17rem;
+  height: clamp(14rem, 17vw, 17.5rem);
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  perspective: 1400px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tcm-bit-inner {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.68, -0.4, 0.32, 1.4);
+  border-radius: 1.1rem;
+  box-shadow: 0 4px 14px rgba(60, 40, 20, 0.14);
+}
+
+.tcm-bit.is-flipped .tcm-bit-inner {
+  transform: rotateY(180deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tcm-bit:hover .tcm-bit-inner {
+    transform: rotateY(180deg);
+  }
+}
+
+.tcm-bit-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border-radius: 1.1rem;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.tcm-bit-face-front {
+  overflow: hidden;
+}
+
+.tcm-bit:nth-child(1) .tcm-bit-face-front { background: #ffe3e9; }
+.tcm-bit:nth-child(2) .tcm-bit-face-front { background: #e3f1ff; }
+.tcm-bit:nth-child(3) .tcm-bit-face-front { background: #fff3cf; }
+
+.tcm-bit-face-front img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  position: absolute;
+  inset: 0;
+}
+
+.tcm-bit-face-back {
+  background: #5b4636;
+  transform: rotateY(180deg);
+}
+
+.tcm-bit-label {
+  color: #fffaf0;
+  font-weight: 700;
+  font-size: clamp(1rem, 1vw, 1.15rem);
+  line-height: 1.35;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .tcm-bit {
+    height: 12rem;
+  }
+}
+

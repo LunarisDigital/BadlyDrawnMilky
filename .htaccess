@@ -1,0 +1,62 @@
+# BadlyDrawnMilky — clean URLs (2026-09-15)
+#
+# Maps the real files to extension-less paths:
+#   index.html               -> /home
+#   contact.html              -> /contact
+#   under-construction.html   -> /under-construction
+#   the-cast-milky.html       -> /the-cast-milky
+#
+# Two passes are needed, in this order:
+# 1) An external 301 redirect for anyone hitting the OLD .html URL (or a
+#    stray trailing slash on a clean one) straight to the clean path — so
+#    old links/bookmarks/search results settle on one canonical URL instead
+#    of both working silently. RewriteCond %{THE_REQUEST} only matches the
+#    browser's ORIGINAL request line, never an internally-rewritten URL, so
+#    this can't loop against pass 2 below reusing the same /home etc. path.
+# 2) An internal rewrite so a request for the clean path is actually served
+#    from the real file, with no visible redirect — the URL bar keeps
+#    showing /home.
+#
+# The root domain (https://badlydrawnmilky.com/) is untouched — cPanel's
+# own default DirectoryIndex already serves index.html there directly, no
+# rewrite needed for that case.
+RewriteEngine On
+
+# --- old .html URLs -> clean paths ---
+RewriteCond %{THE_REQUEST} \s/+index\.html[\s?#] [NC]
+RewriteRule ^index\.html$ /home [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+contact\.html[\s?#] [NC]
+RewriteRule ^contact\.html$ /contact [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+under-construction\.html[\s?#] [NC]
+RewriteRule ^under-construction\.html$ /under-construction [R=301,L]
+
+# the-cast-milky.html -> /the-cast-milky. Kept flat like every other path
+# here (not nested under a /the-cast/ prefix) specifically so it resolves
+# the same way under the local `serve`-based preview.bat as it does on the
+# real cPanel host — `serve` already strips .html on its own for a flat
+# filename match (confirmed: /the-cast-milky.html 301s to /the-cast-milky,
+# which 200s, with zero config), but has no idea what to do with a nested
+# clean path like /the-cast/milky since that's a custom mapping only this
+# .htaccess (Apache-only, ignored entirely by `serve`) ever defined —
+# hitting that nested link while running preview.bat 404'd for exactly
+# this reason. Baby/Princess, when they exist, should follow the same flat
+# the-cast-<name> convention for the same reason.
+RewriteCond %{THE_REQUEST} \s/+the-cast-milky\.html[\s?#] [NC]
+RewriteRule ^the-cast-milky\.html$ /the-cast-milky [R=301,L]
+
+# --- strip an accidental trailing slash on a clean path — every asset on
+#     this site is referenced with a relative (no leading "/") path, e.g.
+#     src="assets/web/...", which only resolves correctly against the site
+#     ROOT; a trailing slash on /home/ would make the browser treat "home"
+#     as a folder instead and resolve those paths to a nonexistent
+#     /home/assets/... ---
+RewriteRule ^(home|contact|under-construction|the-cast-milky)/$ /$1 [R=301,L]
+
+# --- serve the real file for each clean path (internal, no visible
+#     redirect) ---
+RewriteRule ^home$ index.html [L]
+RewriteRule ^contact$ contact.html [L]
+RewriteRule ^under-construction$ under-construction.html [L]
+RewriteRule ^the-cast-milky$ the-cast-milky.html [L]

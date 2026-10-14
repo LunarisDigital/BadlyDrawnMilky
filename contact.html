@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FRT5Y7G5FS"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-FRT5Y7G5FS');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact - BadlyDrawnMilky</title>
+  <meta name="description" content="Get in touch with BadlyDrawnMilky — say hi, ask a question, or just tell Milky he's a good boy.">
+  <link rel="icon" type="image/png" href="assets/web/favicon-512.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/web/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/web/apple-touch-icon-180.png">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Contact - BadlyDrawnMilky">
+  <meta property="og:description" content="Get in touch with BadlyDrawnMilky — say hi, ask a question, or just tell Milky he's a good boy.">
+  <meta property="og:image" content="https://badlydrawnmilky.com/assets/web/favicon-512.png">
+  <meta property="og:url" content="https://badlydrawnmilky.com/contact">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Contact - BadlyDrawnMilky">
+  <meta name="twitter:description" content="Get in touch with BadlyDrawnMilky — say hi, ask a question, or just tell Milky he's a good boy.">
+  <meta name="twitter:image" content="https://badlydrawnmilky.com/assets/web/favicon-512.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Same fixed header as index.html (see its own comments there) — "Home"/
+       "Artist" point back at the homepage's own sections since this page
+       has none of its own, "The Cast" goes to the-cast-milky.html (the
+       first of 3 planned character pages), and "Contact Me" now links
+       here instead of firing a mailto: directly, so it doubles as the
+       current-page indicator. -->
+  <header class="site-header" id="site-header">
+    <a class="site-header-brand" href="index.html" aria-label="BadlyDrawnMilky home">
+      <video class="site-header-logo" src="assets/web/logo-animation-header.mp4" autoplay loop muted playsinline></video>
+    </a>
+    <nav class="site-header-nav">
+      <a href="index.html#section-1">Home</a>
+      <a href="index.html#section-2">Artist</a>
+      <a href="the-cast-milky.html">The Cast</a>
+      <a href="contact.html" aria-current="page">Contact Me</a>
+    </nav>
+  </header>
+
+  <!-- Contact banner: a riff on "The Creation of Adam" — Milky (+ crew,
+       riding in on a red cape) reaching down to meet "you" reaching up,
+       fingertips almost touching, with a soft light burst marking the
+       point of contact. All 4 layers (sky, you, milky+crew, glow) were
+       exported from the same 3840x2160 canvas already composed together
+       (see assets/contact/), so stacking them full-bleed with identical
+       sizing keeps every layer pixel-aligned at any viewport width — no
+       manual positioning needed, just object-fit:cover + a shared
+       object-position on a container cropped to a wide banner strip (see
+       .contact-banner in style.css) rather than the source's full frame. -->
+  <section class="contact-banner" id="contact-banner">
+    <img class="contact-banner-layer contact-banner-bg" src="assets/contact/contact-sky-bg.png" alt="" aria-hidden="true">
+    <img class="contact-banner-layer contact-banner-you" src="assets/contact/contact-you.png" alt="" aria-hidden="true">
+    <img class="contact-banner-layer contact-banner-milky" src="assets/contact/contact-milky-crew.png" alt="Milky and friends flying in" aria-hidden="true">
+    <!-- mix-blend-mode:screen (see style.css) drops this clip's black
+         backing out entirely, leaving just the glow — no color-keying
+         needed since there's nothing but a light burst to key. -->
+    <video class="contact-banner-layer contact-banner-glow" src="assets/contact/contact-glow.mp4" autoplay loop muted playsinline aria-hidden="true"></video>
+  </section>
+
+  <section class="contact-section" id="contact-section">
+    <div class="contact-card">
+      <h2>Say hi</h2>
+      <p>Questions, collabs, or just want to tell us Milky ruined your day in the best way? Email's the fastest way to reach the team.</p>
+      <a class="contact-cta" href="mailto:badlydrawnmilky@gmail.com">badlydrawnmilky@gmail.com</a>
+
+      <div class="contact-socials">
+        <a href="https://www.instagram.com/badlydrawnmilky" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://www.tiktok.com/@badlydrawnmilky" target="_blank" rel="noopener">TikTok</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq-section" id="faq-section">
+    <div class="faq-wrap">
+      <h2>FAQ</h2>
+
+      <details class="faq-item">
+        <summary class="faq-question">Milky, are you real?</summary>
+        <p class="faq-answer">Yes, the real Milky exists! And compared to the animated Milky, real Milky is a very good boy. He&rsquo;s potty trained. He just pees a lot.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">Milky, can I meet you?</summary>
+        <p class="faq-answer">Animated me? Turn on your phone. Boom, there I am. Real me? I&rsquo;m 16. I&rsquo;m retired. No meet-ups. I do naps, snacks, and pee breaks. Respect your elders.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">Milky, do you take commissions?</summary>
+        <p class="faq-answer">My human does. Email <a href="mailto:badlydrawnmilky@gmail.com">badlydrawnmilky@gmail.com</a>. I&rsquo;ll be watching. Probably from the couch.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">Milky, can I repost your content?</summary>
+        <p class="faq-answer">No. I will find you. I will pee on you. I have your scent.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">Milky, is Princess real?</summary>
+        <p class="faq-answer">Urm&hellip; he&rsquo;s real in our hearts. Next question.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- .is-warm forces the footer's own "lit" sky color (see
+       .footer-grass-wrap::after in style.css) instead of its default —
+       on index.html that class only gets added once the candle in
+       section-4 is lit (main.js), and defaults to that section's dark
+       purple room color otherwise. This page has no candle/dark room
+       before it (main.js isn't loaded here at all), so the default read
+       as a stray dark band under a cream FAQ section; is-warm swaps it
+       for --room-warm (#fdedcb) instead, the same cream as .faq-section,
+       with zero new CSS needed. -->
+  <footer class="site-footer is-warm" id="site-footer">
+    <div class="footer-grass-wrap">
+      <picture>
+        <source media="(max-width: 700px)" srcset="assets/web/footer-grass-phone.png">
+        <img class="footer-grass" src="assets/web/footer-grass-pc.png" alt="" aria-hidden="true">
+      </picture>
+    </div>
+
+    <div class="footer-ground">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <img class="footer-logo" src="assets/web/logo.png" alt="BadlyDrawnMilky logo">
+          <p>A badly drawn dog with a belly button who snorts too much.</p>
+          <p class="footer-credit">
+            Website by:
+            <a href="https://lunarisds.com/" target="_blank" rel="noopener" aria-label="Website by Lunaris Digital">
+              <img class="footer-credit-logo" src="assets/Footer/lunaris-digital-logo.png" alt="Lunaris Digital">
+            </a>
+          </p>
+        </div>
+
+        <div class="footer-links">
+          <h3>Explore</h3>
+          <ul>
+            <li><a href="index.html#section-1">Home</a></li>
+            <li><a href="index.html#section-2">Artist</a></li>
+            <li><a href="the-cast-milky.html">The Cast</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links">
+          <h3>Follow</h3>
+          <ul>
+            <li><a href="https://www.instagram.com/badlydrawnmilky" target="_blank" rel="noopener">Instagram</a></li>
+            <li><a href="https://www.tiktok.com/@badlydrawnmilky" target="_blank" rel="noopener">TikTok</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links">
+          <h3>Say hi</h3>
+          <ul>
+            <li><a href="mailto:badlydrawnmilky@gmail.com">badlydrawnmilky@gmail.com</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="footer-copyright">&copy; 2026 BadlyDrawnMilky.</p>
+    </div>
+  </footer>
+
+</body>
+</html>

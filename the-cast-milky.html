@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FRT5Y7G5FS"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-FRT5Y7G5FS');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Milky - The Cast - BadlyDrawnMilky</title>
+  <meta name="description" content="Meet Milky: chubby, fluffy, and not your average dog. His bio, his origin story (told by him), and the chaos he's known for.">
+  <link rel="icon" type="image/png" href="assets/web/favicon-512.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/web/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/web/apple-touch-icon-180.png">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Milky - The Cast - BadlyDrawnMilky">
+  <meta property="og:description" content="Meet Milky: chubby, fluffy, and not your average dog. His bio, his origin story (told by him), and the chaos he's known for.">
+  <meta property="og:image" content="https://badlydrawnmilky.com/assets/web/favicon-512.png">
+  <meta property="og:url" content="https://badlydrawnmilky.com/the-cast-milky">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Milky - The Cast - BadlyDrawnMilky">
+  <meta name="twitter:description" content="Meet Milky: chubby, fluffy, and not your average dog. His bio, his origin story (told by him), and the chaos he's known for.">
+  <meta name="twitter:image" content="https://badlydrawnmilky.com/assets/web/favicon-512.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Same fixed header as every other page (see contact.html's own comment)
+       — "The Cast" now points at this page instead of the under-construction
+       placeholder and carries aria-current, same as "Contact Me" does on
+       contact.html. -->
+  <header class="site-header" id="site-header">
+    <a class="site-header-brand" href="index.html" aria-label="BadlyDrawnMilky home">
+      <video class="site-header-logo" src="assets/web/logo-animation-header.mp4" autoplay loop muted playsinline></video>
+    </a>
+    <nav class="site-header-nav">
+      <a href="index.html#section-1">Home</a>
+      <a href="index.html#section-2">Artist</a>
+      <a href="the-cast-milky.html" aria-current="page">The Cast</a>
+      <a href="contact.html">Contact Me</a>
+    </nav>
+  </header>
+
+  <!-- Hero: same sky-gradient/.hero-text treatment as the homepage's own
+       hero (see .hero in style.css) so this page reads as part of the same
+       site instead of a bolted-on new design — just a plain cream pill
+       switcher added above the heading instead of the homepage's animated
+       Milky-falls-in intro, since this page's own "Milky" IS the content,
+       not a teaser for it. Baby/Princess are disabled (no href, aria-
+       disabled) until their own pages exist — see TheCast_Milky.txt's own
+       instruction that this page is "Milky first" of three. -->
+  <section class="tcm-hero">
+    <img class="tcm-hero-sun" src="assets/web/hero-sun.png" alt="" aria-hidden="true">
+
+    <div class="tcm-switcher" role="tablist" aria-label="The Cast">
+      <a class="tcm-switcher-pill is-active" href="the-cast-milky.html" role="tab" aria-selected="true">Milky</a>
+      <span class="tcm-switcher-pill is-disabled" role="tab" aria-disabled="true" aria-selected="false">Baby <small>soon</small></span>
+      <span class="tcm-switcher-pill is-disabled" role="tab" aria-disabled="true" aria-selected="false">Princess <small>soon</small></span>
+    </div>
+
+    <div class="tcm-hero-content">
+      <div class="tcm-hero-text">
+        <p class="tcm-eyebrow">The Cast</p>
+        <h1>Milky</h1>
+        <p class="tcm-hero-tagline">Chubby. Fluffy. Not your average dog.</p>
+      </div>
+      <img class="tcm-hero-portrait" src="assets/TheCast/Milky/milky-portrait.png" alt="Milky, a round fluffy white dog, sitting and smiling with his tongue out" width="579" height="631">
+    </div>
+
+    <img class="tcm-hero-grass" src="assets/web/hero-grass.png" alt="" aria-hidden="true">
+  </section>
+
+  <!-- Personality & Bio: now a pinned scroll-driven sequence instead of a
+       static image+bullet-list split, per the 2026-10-14 redesign brief
+       ("longer scroll... especially the Personality & Bio section"). Left
+       column (.tcm-bio-art-col) holds a position:sticky art panel that
+       stays put while the right column's 4 tall "beats" scroll past
+       beside it — the same "how far has this scrolled" idea main.js
+       already uses for the homepage museum walker, just done with native
+       CSS sticky + an IntersectionObserver per beat (see
+       the-cast-milky.js) instead of continuous rAF math, since nothing
+       here needs sub-pixel positioning, only "which beat is centered
+       right now." Beat 0 reuses the existing maraca cutout; beat 1 reuses
+       the existing milky-gallery-pee.png (already drawn, and it's
+       literally the pee joke); beats 2/3 have no matching art yet, so
+       they use the site's placeholder portrait per the redesign brief
+       ("use the placeholder for now"). Falls back to a plain stacked
+       column (no sticky, no pin) under 700px — see that media query's own
+       comment below for why. -->
+  <section class="tcm-bio" id="tcm-bio">
+    <div class="tcm-bio-art-col">
+      <div class="tcm-bio-art-sticky">
+        <p class="tcm-eyebrow reveal-text">Personality</p>
+        <div class="tcm-bio-art-frame">
+          <img class="tcm-bio-art-img is-active" data-beat="0" src="assets/TheCast/Milky/milky-gallery-maraca.png" alt="Milky shaking a pair of maracas, grinning" width="500" height="454" loading="lazy">
+          <img class="tcm-bio-art-img" data-beat="1" src="assets/TheCast/Milky/milky-gallery-pee.png" alt="Milky marking his territory" width="500" height="454" loading="lazy">
+          <img class="tcm-bio-art-img" data-beat="2" src="assets/TheCast/Milky/milky-portrait.png" alt="Illustration of Milky having a good time, not being a good boy (placeholder)" width="579" height="631" loading="lazy">
+          <img class="tcm-bio-art-img" data-beat="3" src="assets/TheCast/Milky/milky-portrait.png" alt="Illustration of Milky needing a little help with butt-wiping duty (placeholder)" width="579" height="631" loading="lazy">
+        </div>
+        <div class="tcm-bio-dots" aria-hidden="true">
+          <span class="tcm-bio-dot is-active" data-dot="0"></span>
+          <span class="tcm-bio-dot" data-dot="1"></span>
+          <span class="tcm-bio-dot" data-dot="2"></span>
+          <span class="tcm-bio-dot" data-dot="3"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tcm-bio-beats">
+      <div class="tcm-bio-beat" data-beat="0">
+        <h2 class="reveal-text">Adorable but gross.<br>Cuddly but chaotic.</h2>
+      </div>
+      <div class="tcm-bio-beat" data-beat="1">
+        <p class="reveal-text">A normal dog pees to mark territory.<br>Milky pees to mark <em>you</em> as his.</p>
+      </div>
+      <div class="tcm-bio-beat" data-beat="2">
+        <p class="reveal-text">Milky isn&rsquo;t here to be a good boy &mdash;<br>Milky&rsquo;s here to have a good time.</p>
+      </div>
+      <div class="tcm-bio-beat" data-beat="3">
+        <p class="reveal-text">Milky&rsquo;s a little too chunky to wipe his own butt.<br>A little help is always appreciated.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Origin Story: 3 source clips (assets/TheCast/Milky/origin-*.mp4,
+       cropped/transcoded down from the original 4K masters — see that
+       folder's _source subfolder for the untouched originals) laid out as
+       a manga-style strip — one tall panel (the rainy-night rescue) beside
+       two stacked wide panels (the bath / the feast), bold ink gutters,
+       hand-lettered captions in Milky's own "voice" per the txt file's
+       "told by milky" framing. Panels are plain opaque <video> (not
+       black-keyed canvases like the homepage's character clips) since
+       these are full illustrated scenes, not isolated cutouts — see
+       startBlackKeyedCanvas's own comment in main.js for why that function
+       exists at all; nothing here needs it. -->
+  <section class="tcm-origin">
+    <p class="tcm-eyebrow reveal-text">Origin Story <span class="tcm-eyebrow-sub">(told by Milky)</span></p>
+    <p class="tcm-origin-intro reveal-text">Milky is a real dog, living alongside his owner and Baby for the past 16 human years &mdash; 112 dog years. (Still a baby.)</p>
+    <p class="tcm-origin-leadin reveal-text">It all happened 16 years ago&hellip;</p>
+
+    <!-- Three panels, stacked top to bottom, cut by two angled "speed lines"
+         instead of plain horizontal gutters (see .tcm-manga in style.css) —
+         a wide panel, a thin wedge that tapers to a point on the right, then
+         a wide panel again, each video pre-cropped from its own 4K source
+         (assets/TheCast/Milky/_source/) to its panel's own aspect ratio
+         rather than relying on CSS to crop a full-bleed clip, so there's no
+         wasted/oversized video underneath the clip-path. Panels sit flush
+         against each other (no gutter, no drawn border) — the clip-path
+         cuts themselves are the only thing marking the panel edges. -->
+    <div class="tcm-manga">
+      <figure class="tcm-panel tcm-panel-1">
+        <video src="assets/TheCast/Milky/origin-1-rescue.mp4" poster="assets/TheCast/Milky/origin-1-rescue-poster.jpg" autoplay loop muted playsinline preload="metadata"></video>
+        <figcaption>Milky got kidnapped off the street &mdash; on a rainy night, by the human Milky now calls &ldquo;owner.&rdquo;</figcaption>
+      </figure>
+
+      <figure class="tcm-panel tcm-panel-2">
+        <video src="assets/TheCast/Milky/origin-2-bath.mp4" poster="assets/TheCast/Milky/origin-2-bath-poster.jpg" autoplay loop muted playsinline preload="metadata"></video>
+        <figcaption>Milky tried to escape&hellip;</figcaption>
+      </figure>
+
+      <figure class="tcm-panel tcm-panel-3">
+        <video src="assets/TheCast/Milky/origin-3-feast.mp4" poster="assets/TheCast/Milky/origin-3-feast-poster.jpg" autoplay loop muted playsinline preload="metadata"></video>
+        <figcaption>But Milky got fed well. TOO well. So Milky stayed &mdash; for the next 16 years.</figcaption>
+      </figure>
+    </div>
+
+    <p class="tcm-origin-link">the full story (from the human) <span class="tcm-soon">coming soon</span></p>
+  </section>
+
+  <!-- Brand Spirit / Catchphrase + Signature Bits, redesigned 2026-10-14:
+       the pull-quote (still Caveat, still the one spot on this page that
+       breaks from the site's usual rounded sans) now "scrawls" onto the
+       page word by word on scroll-in instead of just fading in as one
+       block, and the doodle beside it idly bobs/wobbles like a sticky
+       note taped to a sketchbook page rather than sitting dead-still — see
+       the-cast-milky.js's own comment on .tcm-quote-text's word-stagger
+       for how the words are split. The hand-drawn circle under "3 P's" is
+       a real inline SVG that draws itself on (stroke-dasharray, not an
+       image) the moment the quote reveals, so it reads as Milky
+       underlining his own line rather than a static asset.
+
+       "Known For" is now a row of tap/hover flip-cards, not static badge
+       cards — front face is just the illustration (placeholder for now,
+       no label) so flipping genuinely reveals something instead of
+       repeating what's already on screen; back face is the same trait
+       label the old static badge cards used verbatim (nothing new
+       invented — see [[badlydrawnmilky-cast-page-content-fidelity]] on
+       why captions here stay exactly on the txt file's own wording
+       rather than being expanded into new flavor text). Flipped via a
+       shared .is-flipped toggle in the-cast-milky.js (click/tap + hover,
+       not hover-only, since hover doesn't exist on touch). -->
+  <section class="tcm-quote">
+    <div class="tcm-quote-inner">
+      <img class="tcm-quote-doodle reveal-text" src="assets/TheCast/Milky/milky-portrait.png" alt="Milky doodle (placeholder)" width="579" height="631" loading="lazy">
+      <p class="tcm-quote-text reveal-text" data-scrawl>
+        <span class="tcm-quote-line1">To Milky, life is all about the <span class="tcm-quote-accent">3 P&rsquo;s<svg class="tcm-quote-underline" viewBox="0 0 160 24" aria-hidden="true"><path d="M4 16 C 40 24, 90 2, 156 12" /></svg></span>&hellip;</span><br>Pee. Poo. Pet my head.
+      </p>
+    </div>
+
+    <div class="tcm-bits">
+      <p class="tcm-eyebrow reveal-text">Milky is Known For</p>
+      <p class="tcm-bits-hint reveal-text">(tap a card to peek)</p>
+      <div class="tcm-bits-grid">
+        <button type="button" class="tcm-bit reveal-text" aria-pressed="false">
+          <span class="tcm-bit-inner">
+            <span class="tcm-bit-face tcm-bit-face-front">
+              <img src="assets/TheCast/Milky/milky-portrait.png" alt="Illustration of Milky's surprise feces attacks (placeholder)" width="579" height="631" loading="lazy">
+            </span>
+            <span class="tcm-bit-face tcm-bit-face-back">
+              <span class="tcm-bit-label">Unexpected Feces Attacks</span>
+            </span>
+          </span>
+        </button>
+        <button type="button" class="tcm-bit reveal-text" aria-pressed="false">
+          <span class="tcm-bit-inner">
+            <span class="tcm-bit-face tcm-bit-face-front">
+              <img src="assets/TheCast/Milky/milky-portrait.png" alt="Illustration of Milky's fart-in-your-face ambush (placeholder)" width="579" height="631" loading="lazy">
+            </span>
+            <span class="tcm-bit-face tcm-bit-face-back">
+              <span class="tcm-bit-label">Fart-in-Your-Face Ambush</span>
+            </span>
+          </span>
+        </button>
+        <button type="button" class="tcm-bit reveal-text" aria-pressed="false">
+          <span class="tcm-bit-inner">
+            <span class="tcm-bit-face tcm-bit-face-front">
+              <img src="assets/TheCast/Milky/milky-portrait.png" alt="Illustration of one of Milky's pranks (placeholder)" width="579" height="631" loading="lazy">
+            </span>
+            <span class="tcm-bit-face tcm-bit-face-back">
+              <span class="tcm-bit-label">Pranks That Make You Go &ldquo;Ew&rdquo; or &ldquo;Haha Funny&rdquo;</span>
+            </span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Global CTA: reuses .contact-section/.contact-card/.contact-cta/
+       .contact-socials verbatim (see contact.html) instead of inventing a
+       new CTA component for one more button + 2 links. -->
+  <section class="contact-section">
+    <div class="contact-card">
+      <h2>Follow the Chaos</h2>
+      <p>More Milky, more often. Unfiltered chaos, delivered on a schedule a responsible adult would not recommend.</p>
+      <a class="contact-cta" href="https://www.instagram.com/badlydrawnmilky" target="_blank" rel="noopener">Follow on Instagram</a>
+
+      <div class="contact-socials">
+        <a href="https://www.instagram.com/badlydrawnmilky" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://www.tiktok.com/@badlydrawnmilky" target="_blank" rel="noopener">TikTok</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Same .is-warm footer-color override as contact.html — this page has
+       no candle/dark-room section before it either (see that page's own
+       comment on this exact class). -->
+  <footer class="site-footer is-warm" id="site-footer">
+    <div class="footer-grass-wrap">
+      <picture>
+        <source media="(max-width: 700px)" srcset="assets/web/footer-grass-phone.png">
+        <img class="footer-grass" src="assets/web/footer-grass-pc.png" alt="" aria-hidden="true">
+      </picture>
+    </div>
+
+    <div class="footer-ground">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <img class="footer-logo" src="assets/web/logo.png" alt="BadlyDrawnMilky logo">
+          <p>A badly drawn dog with a belly button who snorts too much.</p>
+          <p class="footer-credit">
+            Website by:
+            <a href="https://lunarisds.com/" target="_blank" rel="noopener" aria-label="Website by Lunaris Digital">
+              <img class="footer-credit-logo" src="assets/Footer/lunaris-digital-logo.png" alt="Lunaris Digital">
+            </a>
+          </p>
+        </div>
+
+        <div class="footer-links">
+          <h3>Explore</h3>
+          <ul>
+            <li><a href="index.html#section-1">Home</a></li>
+            <li><a href="index.html#section-2">Artist</a></li>
+            <li><a href="the-cast-milky.html">The Cast</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links">
+          <h3>Follow</h3>
+          <ul>
+            <li><a href="https://www.instagram.com/badlydrawnmilky" target="_blank" rel="noopener">Instagram</a></li>
+            <li><a href="https://www.tiktok.com/@badlydrawnmilky" target="_blank" rel="noopener">TikTok</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links">
+          <h3>Say hi</h3>
+          <ul>
+            <li><a href="mailto:badlydrawnmilky@gmail.com">badlydrawnmilky@gmail.com</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="footer-copyright">&copy; 2026 BadlyDrawnMilky.</p>
+    </div>
+  </footer>
+
+  <script src="js/the-cast-milky.js?v=2"></script>
+</body>
+</html>

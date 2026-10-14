@@ -1,0 +1,83 @@
+BadlyDrawnMilky — Homepage Plan
+================================
+(Edit this file freely; share it back to Claude when it changes.)
+
+1. Hero section
+   - Short introduction and a welcome message
+   - Assets: all files labeled "1 Hero" (assets/Homepage), plus links forward into the
+     "2 BI - M2 start Transition" clips at the end.
+   - Layering: "1 Hero- M1 BG.mp4" is the background layer, always running underneath,
+     looped seamlessly (no visible cut/jump at the loop point).
+   - Sequence:
+       a. "1 Hero- M1 start transition.mp4" plays first — starts off the hero section.
+       b. Then settles into "1 Hero- M1 Loop.mp4" — this is when the welcome-message text
+          slowly animates/comes onto the screen.
+       c. On scroll down: "1 Hero- M1 to M2 transition.mp4" plays,
+          with "1 Hero - M1 to M2 transition_erase action _ top layer_.mp4" layered on
+          TOP of it (the scribble/wipe mask effect).
+       d. Then "2 B I- M2 start Transition_.mp4" plays, together with its background
+          plate "2 BI - M2 start transition bg.mp4" (linked/played together).
+       e. Page/stage background color default: white, until "2 B I- M2 start Transition_"
+          finishes playing (then presumably handed off to section 2's own background).
+   - Note: full section-2 (Brand Intro) asset mapping is still TBD — this entry only
+     covers how the Hero section hands off into the M2 start-transition clips.
+
+2. Brand Intro
+   - "A badly drawn dog with a belly button who snorts too much.
+      Started as one silly animation, never really stopped."
+
+3. Best-of Content Reel
+   - A collection of some of our finest chaos
+
+4. Meet the Crew
+   - Milky and his friends
+
+5. Social Proof / Stats
+   - Statistics about the social page(s)
+
+6. Brand Path CTA banner
+   - "Brand or artist? Let's make something silly together"
+
+7. Footer
+   - Global footer
+
+--------------------------------
+Asset-to-section mapping: TBD (to be filled in as it's discussed)
+
+Note (2026-09-04): the "Meet the Crew" platforms (Milky/Baby platforms +
+princess river) live in the code inside the section still named/classed
+"section-3"/"bocr-*" (id="section-3", .bocr-platforms etc.) alongside the
+best-of gallery, rather than in a separate "section-4" block — there's no
+dedicated section-4 markup yet. Milky, Baby, and Princess characters have
+now been added there: Milky plays his intro GIF once in view then hands
+off to his idle loop (which includes him periodically peeing), the pee
+stream is chained with tiled copies of the isolated pee GIF down to the
+river, Baby and Princess are ambient idle loops revealed on scroll, and
+Princess is positioned right where the pee stream lands. See index.html's
+.bocr-platforms/.bocr-river-wrap and the matching block in main.js.
+
+Note (2026-09-04, later): started section 5 (Social Proof/Stats) in code
+as id="section-4" (next sequential id after hero=section-1, M2=section-2,
+BOCR+crew=section-3), right after section-3 closes. So far it's just the
+section shell with a dark "empty room" background (see .section-4 in
+style.css) — no stats/social-proof content built yet.
+
+Note (2026-09-05): added the copy for items 2-5 into the empty space each
+section already had — section-2's 90vh blank buffer, the ~42vh gap in
+section-3 between the museum frame and the crew platforms, and the first
+screenful of section-4's dark room (before the candle). Item 5's actual
+stats/numbers still aren't real — used tone-only copy ("Milky's world keeps
+growing") instead of inventing follower counts, since fake numbers would
+need to be swapped for real ones before this ever goes live. Item 6 (Brand
+Path CTA banner) still has no section markup at all yet.
+
+Note (2026-09-08): item 5 (Social Proof/Stats, coded as id="section-4")
+got its first real payoff moment — lighting the candle (3 clicks on its
+wick, see main.js) now reveals Milky/Baby/Princess celebrating with party
+favors (maracas, a party horn, a tambourine) clustered around it, using 3
+new source clips the user added (`5- {Milky,Baby,Princess} only MP4.mp4`).
+Still no real follower numbers on the page anywhere. See the
+badlydrawnmilky-section4-crew memory for the full technical writeup —
+mobile layout for this specific addition is unverified (this session's
+tooling couldn't force a real mobile viewport), so it's worth an early
+real-device check.

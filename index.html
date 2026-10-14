@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FRT5Y7G5FS"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-FRT5Y7G5FS');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BadlyDrawnMilky</title>
+  <!-- 2026-09-14: real copy — was previously missing entirely (Google was
+       filling in an auto-generated, wrong-language snippet as a result, per
+       the site-info card the user screenshotted). Kept short/factual and in
+       the same voice as the hero/section-2 copy ("I snort, I nap, I cause
+       problems" / "a badly drawn dog with a belly button"), not marketing
+       copy invented for SEO's sake. Mirrored into og:/twitter: below since
+       link-preview unfurls (the exact kind of card in that screenshot) read
+       those over the plain description when present, not just search. -->
+  <meta name="description" content="Meet Milky — a badly drawn dog with a belly button who snorts too much, naps constantly, and causes problems. Explore his world with Baby and Princess.">
+  <!-- Same "milky icon .jpg" the user supplied, cropped tight to its actual
+       drawn content (the source file is a 2048x1985 canvas with the little
+       face mark floating in a sea of empty white margin — unprocessed, it
+       would render as a near-invisible speck at real favicon sizes) and
+       padded back out to a square. See assets/web/favicon-32.png etc.'s own
+       generation notes in this project's memory for the crop coordinates. -->
+  <link rel="icon" type="image/png" href="assets/web/favicon-512.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/web/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/web/apple-touch-icon-180.png">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="BadlyDrawnMilky">
+  <meta property="og:description" content="Meet Milky — a badly drawn dog with a belly button who snorts too much, naps constantly, and causes problems. Explore his world with Baby and Princess.">
+  <meta property="og:image" content="https://badlydrawnmilky.com/assets/web/favicon-512.png">
+  <meta property="og:url" content="https://badlydrawnmilky.com/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="BadlyDrawnMilky">
+  <meta name="twitter:description" content="Meet Milky — a badly drawn dog with a belly button who snorts too much, naps constantly, and causes problems. Explore his world with Baby and Princess.">
+  <meta name="twitter:image" content="https://badlydrawnmilky.com/assets/web/favicon-512.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Fredoka: a rounded, chunky display/text font that matches the
+       hand-drawn/pastel brand better than a system sans — used site-wide
+       (not just headings) per "more cartoonish font style that is
+       thicker". 500/600/700 covers body copy, the header bar, and
+       headings without needing a separate heading-only face. -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=4">
+</head>
+<body>
+
+  <!-- Permanent top nav — position:fixed + a high z-index (100, above
+       everything else on the page, whose own highest is 11) so it never
+       scrolls away, unlike every other "sticky" element on the page
+       (candle-rig, the section intro texts), which only stick within
+       their own section and let go once it scrolls past. -->
+  <header class="site-header" id="site-header">
+    <a class="site-header-brand" href="#section-1" aria-label="BadlyDrawnMilky home">
+      <!-- The full "Badly Drawn Milky" wordmark + mascot, animated —
+           already carries the site name drawn into the clip itself, so no
+           separate text sits next to it (see the removed <span> this
+           replaced). White source background, keyed off via CSS
+           mix-blend-mode:multiply against the header's own cream bg
+           (same technique this exact clip used pre-August-reset, per the
+           old README) rather than a runtime canvas key — cheap and exact
+           for a plain white background, no green/black-key edge-case
+           tuning needed the way the page's other clips require. -->
+      <video class="site-header-logo" src="assets/web/logo-animation-header.mp4" autoplay loop muted playsinline></video>
+    </a>
+    <nav class="site-header-nav">
+      <a href="#section-1">Home</a>
+      <a href="under-construction.html">Artist</a>
+      <a href="the-cast-milky.html">The Cast</a>
+      <a href="contact.html">Contact Me</a>
+    </nav>
+  </header>
+
+  <section class="hero" id="section-1">
+    <img class="hero-sun" src="assets/web/hero-sun.png" alt="" aria-hidden="true">
+
+    <div class="hero-text">
+      <h1>Hi, <span class="hero-name">I'm Milky!</span></h1>
+      <p>I snort, I nap, I cause problems.</p>
+    </div>
+
+    <!-- "1 Hero- M1 start transition.mp4" (homepage-plan.txt item 1a): Milky
+         falls in from off-screen once, landing roughly where the idle loop
+         below sits, then crossfades into it — see the hero block in main.js.
+         Drawn at its full native 1920x1080 (an earlier version cropped this
+         tight to just his landing spot, but a landing-poof effect in the
+         clip grows bigger than any crop tight enough to reuse the loop
+         canvas's own small box, and got visibly hard-clipped by the crop's
+         own edges — see .hero-milky-start in style.css for the fix). -->
+    <canvas class="hero-milky-start" id="milky-start-canvas" width="1920" height="1080" aria-hidden="true"></canvas>
+    <video id="milky-start-source" src="assets/web/hero-m1-start.mp4" muted playsinline preload="auto" style="position:absolute; left:-9999px; top:-9999px;"></video>
+    <canvas class="hero-milky" id="milky-canvas" width="800" height="800" aria-hidden="true"></canvas>
+    <video id="milky-source" src="assets/web/hero-m1-loop.mp4" loop muted playsinline preload="auto" style="position:absolute; left:-9999px; top:-9999px;"></video>
+
+    <img class="hero-flowers" src="assets/web/hero-flowers.png" srcset="assets/web/hero-flowers-sm.png 1200w, assets/web/hero-flowers.png 2000w" sizes="(max-width: 700px) 220vw, min(100vw, 1400px)" alt="" aria-hidden="true">
+    <img class="hero-grass" src="assets/web/hero-grass.png" alt="" aria-hidden="true">
+  </section>
+
+  <section class="section-2-placeholder" id="section-2">
+    <div class="section-2-buffer">
+      <div class="s2-intro-text reveal-text">
+        <p>A badly drawn dog with a belly button who snorts too much.<br>Started as one silly animation, never really stopped.</p>
+      </div>
+    </div>
+
+    <div class="m2-stage" id="m2-stage">
+      <img class="m2-platform" id="m2-platform" src="assets/web/m2-platform.png" alt="" aria-hidden="true">
+      <!-- Mobile-only replacement for .m2-platform above (that image is
+           display:none on mobile, this is display:none on desktop — see
+           style.css). Earlier rounds tried re-cropping m2-platform.png
+           vertically (top/bottom slices), which either lost one of its two
+           ink lines or dragged in the source art's left-side perspective
+           wedge — both read badly once stretched to mobile's much taller
+           platform height. m2-platform-mobile.png instead crops
+           HORIZONTALLY: a slice from the source art's flat middle/right
+           region only (x 1000-1900 of the 1920-wide original), well clear
+           of the wedge (which ends around x~950-980), full original height
+           at that slice (y 52-722, keeping both the back-seam line near the
+           top and the front-edge line near the bottom, plus the corner
+           seam between them). That region has no perspective geometry left
+           to distort, so stretching it to full mobile width via
+           object-fit: fill just extends the horizontal ink lines — it
+           reads as one continuous 3D platform edge-to-edge instead of a
+           tapering/cropped fragment. -->
+      <img class="m2-platform-mobile" src="assets/web/m2-platform-mobile.png" alt="" aria-hidden="true">
+      <!-- The old CSS-drawn platform box faded its own front face into
+           section-3's #ffd9a6 first gradient stop so the mobile
+           section-to-section color change didn't cut hard at the boundary
+           (see style.css history). A plain stretched <img> has no fill
+           color of its own to fade, so this sibling overlay reproduces
+           the same fade on top of it instead of losing that fix. -->
+      <div class="m2-platform-mobile-fade" aria-hidden="true"></div>
+      <!-- 2026-09-07: split from one merged m2-table-items.png into 3
+           individually-tappable images (reusing the same standalone
+           m2-mobile-*.png art the mobile layout already has — see
+           .m2-desktop-nailclipper's own comment in style.css) so each
+           grooming item can carry its own shadow/idle-wobble/tap-pop. -->
+      <!-- Not aria-hidden, unlike the other purely-decorative elements in
+           this stage — its 3 children are real focusable/clickable
+           controls (role="button" tabindex="0" below), and aria-hidden on
+           an ancestor of a focusable element is an accessibility
+           violation (the element stays keyboard-focusable while hidden
+           from assistive tech, which is worse than not hiding it at all). -->
+      <div class="m2-groom-cluster">
+        <img class="m2-groom-item m2-tappable m2-desktop-nailclipper m2-reveal" id="m2-desktop-nailclipper" src="assets/web/m2-mobile-nailclipper.png" alt="Nail clipper" role="button" tabindex="0">
+        <img class="m2-groom-item m2-tappable m2-desktop-nailpolish m2-reveal" id="m2-desktop-nailpolish" src="assets/web/m2-mobile-nailpolish.png" alt="Nail polish" role="button" tabindex="0">
+        <img class="m2-groom-item m2-tappable m2-desktop-toothbrush m2-reveal" id="m2-desktop-toothbrush" src="assets/web/m2-mobile-toothbrush.png" alt="Toothbrush" role="button" tabindex="0">
+      </div>
+      <img class="m2-teddy-bear m2-groom-item m2-reveal" id="m2-teddy-bear" src="assets/web/m2-teddy-bear.png" alt="" aria-hidden="true">
+      <!-- Mobile-only: replaces the desktop "items sitting on the table"
+           treatment above (.m2-groom-cluster/.m2-teddy-bear, hidden on
+           mobile — see style.css) with the same 4 props floating loose
+           around Milky instead of resting on the table surface. Hidden on
+           desktop by default, shown + positioned in the mobile media
+           query. Reuses .m2-reveal for the same scroll-triggered fade-in
+           as every other item in this stage, and .m2-groom-item/
+           .m2-tappable (see style.css) for the shared shadow/idle-wobble/
+           tap-pop treatment — same as the desktop cluster above. -->
+      <img class="m2-mobile-prop m2-mobile-nailpolish m2-groom-item m2-tappable m2-reveal" id="m2-mobile-nailpolish" src="assets/web/m2-mobile-nailpolish.png" alt="Nail polish" role="button" tabindex="0">
+      <img class="m2-mobile-prop m2-mobile-nailclipper m2-groom-item m2-tappable m2-reveal" id="m2-mobile-nailclipper" src="assets/web/m2-mobile-nailclipper.png" alt="Nail clipper" role="button" tabindex="0">
+      <img class="m2-mobile-prop m2-mobile-teddybear m2-groom-item m2-reveal" id="m2-mobile-teddybear" src="assets/web/m2-mobile-teddybear-sm.png" alt="" aria-hidden="true">
+      <img class="m2-mobile-prop m2-mobile-toothbrush m2-groom-item m2-tappable m2-reveal" id="m2-mobile-toothbrush" src="assets/web/m2-mobile-toothbrush.png" alt="Toothbrush" role="button" tabindex="0">
+      <canvas class="m2-video-canvas" id="m2-video-canvas" width="1920" height="1080" aria-hidden="true"></canvas>
+      <video id="m2-video-source" src="assets/web/m2-start-baked.mp4" muted playsinline preload="metadata" style="position:absolute; left:-9999px; top:-9999px;"></video>
+      <canvas class="m2-loop-canvas" id="m2-loop-canvas" width="700" height="700" aria-hidden="true"></canvas>
+      <video id="m2-loop-source" src="assets/web/m2-loop-source.mp4" muted playsinline loop preload="metadata" style="position:absolute; left:-9999px; top:-9999px;"></video>
+    </div>
+  </section>
+
+  <section class="section-3" id="section-3">
+    <p class="bocr-plaque reveal-text">A collection of some of our finest chaos</p>
+
+    <div class="bocr-cloud-frame">
+      <img class="bocr-cloud" src="assets/web/bocr-cloud.png" alt="" aria-hidden="true">
+      <div class="bocr-frame">
+        <img class="bocr-roof" src="assets/web/bocr-roof.png" srcset="assets/web/bocr-roof-sm.png 1000w, assets/web/bocr-roof.png 1920w" sizes="(max-width: 700px) 100vw, 75vw" alt="" aria-hidden="true">
+        <img class="bocr-roof-blend" src="assets/web/bocr-roof.png" srcset="assets/web/bocr-roof-sm.png 1000w, assets/web/bocr-roof.png 1920w" sizes="(max-width: 700px) 100vw, 75vw" alt="" aria-hidden="true">
+        <div class="bocr-viewport-wrap">
+          <div class="bocr-viewport" id="bocr-viewport">
+            <!-- .bocr-strip-wrap sizes itself to the image's own rendered
+                 width (inline-block, no width set) so the 6 spotlight
+                 frames below — positioned in % of THIS box, not of
+                 .bocr-viewport's visible window — land on the actual
+                 yellowish glow pools baked into bocr-background.jpg
+                 (measured directly off the source: 7680x1080, glow peaks
+                 at roughly x 1147/2077/2997/4622/5567/6418px) and pan
+                 together with the artwork as it scrolls, instead of
+                 needing to be repositioned by hand every scroll tick. -->
+            <div class="bocr-strip-wrap">
+              <img class="bocr-strip" src="assets/web/bocr-background.jpg" alt="Best-of content reel: a small gallery starring Milky and friends">
+
+              <div class="bocr-spotlight" style="left: 14.93%;">
+                <div class="bocr-spotlight-embed" data-platform="instagram" data-url="https://www.instagram.com/reel/C9w9vm2p0cJ/" data-zoom="1.45"></div>
+                <p class="bocr-spotlight-caption">best of Milky #1</p>
+              </div>
+              <div class="bocr-spotlight" style="left: 27.04%;">
+                <div class="bocr-spotlight-embed" data-platform="instagram" data-url="https://www.instagram.com/reel/DDM95Qyvful/" data-zoom="1.45"></div>
+                <p class="bocr-spotlight-caption">best of Milky #2</p>
+              </div>
+              <!-- data-zoom (#1-#6): these posts' own media is pillarboxed
+                   inside Instagram's card (black bars left/right — the media
+                   itself is narrower than the card) — see fitEmbedIframe in
+                   main.js for what data-zoom does. 1.45 was measured directly
+                   off a screenshot of #3; the same value was carried over to
+                   the rest as a starting estimate rather than a per-post
+                   measurement, so any of them may still need their own nudge
+                   once actually visible. #1 was originally left unzoomed on
+                   the assumption its video already filled edge-to-edge, but
+                   it actually renders visibly smaller/differently sized than
+                   the rest without it — carries the same 1.45 now. -->
+              <div class="bocr-spotlight" style="left: 39.02%;">
+                <div class="bocr-spotlight-embed" data-platform="instagram" data-url="https://www.instagram.com/reel/DLR-KskRHq7/" data-zoom="1.45"></div>
+                <p class="bocr-spotlight-caption">best of Milky #3</p>
+              </div>
+              <div class="bocr-spotlight" style="left: 60.18%;">
+                <div class="bocr-spotlight-embed" data-platform="instagram" data-url="https://www.instagram.com/reel/DJqvhnpxl9Q/" data-zoom="1.45"></div>
+                <p class="bocr-spotlight-caption">best of Milky #4</p>
+              </div>
+              <div class="bocr-spotlight" style="left: 72.49%;">
+                <div class="bocr-spotlight-embed" data-platform="instagram" data-url="https://www.instagram.com/reel/DOu-1RNCT9M/" data-zoom="1.45"></div>
+                <p class="bocr-spotlight-caption">best of Milky #5</p>
+              </div>
+              <div class="bocr-spotlight" style="left: 83.57%;">
+                <div class="bocr-spotlight-embed" data-platform="instagram" data-url="https://www.instagram.com/reel/DI1JKiLPLNn/" data-zoom="1.45"></div>
+                <p class="bocr-spotlight-caption">best of Milky #6</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Milky walking left-to-right across the museum floor as the
+             page scrolls through this frame (see the museum-walker block
+             in main.js) — from "3 BOCR - M1.mov" (assets/Homepage), a
+             short run-cycle clip transcoded/cropped to
+             bocr-milky-walk.mp4. His own left/right position is driven
+             entirely by JS (scroll progress through .bocr-frame), not
+             CSS; the canvas just plays the run-cycle loop in place. -->
+        <div class="bocr-museum-walker" id="bocr-museum-walker">
+          <canvas class="bocr-milky-walk-canvas" id="bocr-milky-walk-canvas" width="816" height="1060" aria-hidden="true"></canvas>
+        </div>
+      </div>
+
+      <img class="bocr-cloud-border bocr-cloud-border-tl" src="assets/web/bocr-cloud-tl.png" alt="" aria-hidden="true">
+      <img class="bocr-cloud-border bocr-cloud-border-tr" src="assets/web/bocr-cloud-tr.png" alt="" aria-hidden="true">
+      <img class="bocr-cloud-border bocr-cloud-border-bl" src="assets/web/bocr-cloud-bl.png" alt="" aria-hidden="true">
+      <img class="bocr-cloud-border bocr-cloud-border-br" src="assets/web/bocr-cloud-br.png" alt="" aria-hidden="true">
+    </div>
+
+    <div class="bocr-crew-heading reveal-text">
+      <h2>Meet the Crew</h2>
+      <p>Milky and his friends</p>
+    </div>
+
+    <div class="bocr-platforms" id="bocr-platforms">
+      <!-- Hover-reveal caption per character (see .bocr-crew-caption in
+           style.css) — the short "Milky (chaos) / Baby (the calm one,
+           allegedly) / Princess (certified menace)" taglines from Home
+           Content Summary.txt's own Meet the Cast entry, never used
+           anywhere on the page until now. Each sits inside the same box
+           that already positions that character's platform/canvas, so
+           :hover on the box (not the canvas — canvases are all
+           pointer-events:none, see their own rules) is what triggers it. -->
+      <div class="bocr-milky-spot">
+        <img class="bocr-milky-platform" src="assets/web/bocr-milky-platform.png" alt="" aria-hidden="true">
+        <canvas class="bocr-milky-intro-canvas" id="bocr-milky-intro-canvas" width="853" height="480" aria-hidden="true"></canvas>
+        <canvas class="bocr-milky-loop-canvas" id="bocr-milky-loop-canvas" width="700" height="978" aria-hidden="true"></canvas>
+        <div class="bocr-pee-chain" id="bocr-pee-chain" aria-hidden="true"></div>
+        <div class="bocr-crew-caption">
+          <p class="bocr-crew-caption-name">Milky</p>
+          <p class="bocr-crew-caption-sub">chaos</p>
+        </div>
+      </div>
+
+      <div class="bocr-baby-spot">
+        <img class="bocr-baby-platform" src="assets/web/bocr-baby-platform.png" alt="" aria-hidden="true">
+        <canvas class="bocr-baby-loop-canvas" id="bocr-baby-loop-canvas" width="700" height="954" aria-hidden="true"></canvas>
+        <div class="bocr-crew-caption">
+          <p class="bocr-crew-caption-name">Baby</p>
+          <p class="bocr-crew-caption-sub">the calm one, allegedly</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bocr-river-wrap">
+      <img class="bocr-princess-river" src="assets/web/bocr-princess-river.png" alt="" aria-hidden="true">
+      <!-- Own hotspot wrapper, sized to exactly match the canvas's previous
+           position/width (see its own comment in style.css) — .bocr-river-
+           wrap itself spans the section's full width (it's the river's
+           decorative backing strip), way bigger than Princess herself, so
+           hovering anywhere on it would have wrongly counted as hovering
+           her. This scopes :hover to just her own box instead. -->
+      <div class="bocr-princess-hotspot">
+        <canvas class="bocr-princess-loop-canvas" id="bocr-princess-loop-canvas" width="1000" height="648" aria-hidden="true"></canvas>
+        <div class="bocr-crew-caption">
+          <p class="bocr-crew-caption-name">Princess</p>
+          <p class="bocr-crew-caption-sub">certified menace</p>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <section class="section-4" id="section-4">
+    <!-- Fixed to the viewport (not the section) while section-4 is in
+         view, so it can "follow" scroll — see the candle-follow block in
+         main.js. .candle-rig only handles base position (centered,
+         near the bottom) and reveal/hide opacity; .candle-physics inside
+         it is where the scroll-reactive spring-physics wobble gets
+         applied each frame, kept separate so the two transforms never
+         fight each other. -->
+    <!-- Restyled from 3 plain stacked paragraphs (read as one dense block
+         of text, per "too messy") into distinct number+label stat tiles —
+         see .s4-stats/.s4-stat-* in style.css. Same copy, just given each
+         number its own visual weight and breathing room instead of
+         burying it mid-sentence. -->
+    <div class="s4-intro-text reveal-text">
+      <h2>Milky's world keeps growing</h2>
+      <div class="s4-stats">
+        <div class="s4-stat">
+          <p class="s4-stat-number">187K+</p>
+          <p class="s4-stat-label">humans (and their dogs) follow this chaos</p>
+        </div>
+        <div class="s4-stat">
+          <p class="s4-stat-number">1.6M</p>
+          <p class="s4-stat-label">views on an average video. We don't know how either.</p>
+        </div>
+        <div class="s4-stat">
+          <p class="s4-stat-number">1 in 6</p>
+          <p class="s4-stat-label">posts goes viral. Milky remains unbothered.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="candle-rig" id="candle-rig" aria-hidden="true">
+      <!-- The crew showing up to celebrate once the candle is lit — see the
+           SPARKS_NEEDED handler in main.js's candle-ignite block, which adds
+           .is-revealed here the instant the fire appears. Sits as a sibling
+           BEFORE .candle-physics (not a separate top-level sticky element)
+           so it inherits the candle's own sticky position + mouse-follow
+           wobble for free, and plain DOM order keeps the candle drawn in
+           front with no z-index needed. -->
+      <!-- Layering per "move princess behind baby": DOM order is the only
+           thing that controls stacking here (no z-index on any of the 3),
+           so Baby simply needs to come AFTER Princess in the markup to
+           render in front of her. Milky's own order relative to the other
+           two wasn't part of the request, left as the first (furthest
+           back) of the three. -->
+      <div class="s4-crew" id="s4-crew">
+        <canvas class="s4-crew-canvas s4-crew-milky" id="s4-crew-milky-canvas" width="700" height="614"></canvas>
+        <canvas class="s4-crew-canvas s4-crew-princess" id="s4-crew-princess-canvas" width="700" height="1182"></canvas>
+        <canvas class="s4-crew-canvas s4-crew-baby" id="s4-crew-baby-canvas" width="700" height="890"></canvas>
+      </div>
+      <div class="candle-physics" id="candle-physics">
+        <img class="candle-only" id="candle-only" src="assets/web/candle-only-sm.png" alt="A striped candle">
+        <canvas class="candle-flame-canvas" id="candle-spark-canvas" width="852" height="480"></canvas>
+        <canvas class="candle-flame-canvas" id="candle-fire-canvas" width="852" height="480"></canvas>
+      </div>
+      <!-- Blinks above the candle to prompt the click — main.js's
+           candle-ignite block adds .is-hidden the instant the candle is
+           actually clicked (state leaves 'unlit'), so it never lingers once
+           the spark/fire sequence has started. Sits directly on .candle-rig
+           (not .candle-physics) so it stays put rather than following the
+           candle's own mouse-follow wobble. -->
+      <p class="candle-click-hint" id="candle-click-hint">Click!</p>
+    </div>
+  </section>
+
+  <footer class="site-footer" id="site-footer">
+    <div class="footer-grass-wrap">
+      <picture>
+        <source media="(max-width: 700px)" srcset="assets/web/footer-grass-phone.png">
+        <img class="footer-grass" src="assets/web/footer-grass-pc.png" alt="" aria-hidden="true">
+      </picture>
+    </div>
+
+    <div class="footer-ground">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <img class="footer-logo" src="assets/web/logo.png" alt="BadlyDrawnMilky logo">
+          <p>A badly drawn dog with a belly button who snorts too much.</p>
+          <p class="footer-credit">
+            Website by:
+            <a href="https://lunarisds.com/" target="_blank" rel="noopener" aria-label="Website by Lunaris Digital">
+              <img class="footer-credit-logo" src="assets/Footer/lunaris-digital-logo.png" alt="Lunaris Digital">
+            </a>
+          </p>
+        </div>
+
+        <!-- Labels now match the header nav's own names for these same 3
+             anchors exactly (was "Home/About/Gallery" here vs. "Home/
+             Artist/The Cast" up in .site-header-nav for the identical
+             #section-1/2/3 targets) — two different names for the same
+             page structure read as a mistake, not a style choice. -->
+        <div class="footer-links">
+          <h3>Explore</h3>
+          <ul>
+            <li><a href="#section-1">Home</a></li>
+            <li><a href="under-construction.html">Artist</a></li>
+            <li><a href="the-cast-milky.html">The Cast</a></li>
+            <li><a href="contact.html">Contact Me</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links">
+          <h3>Follow</h3>
+          <ul>
+            <li><a href="https://www.instagram.com/badlydrawnmilky" target="_blank" rel="noopener">Instagram</a></li>
+            <li><a href="https://www.tiktok.com/@badlydrawnmilky" target="_blank" rel="noopener">TikTok</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links">
+          <h3>Say hi</h3>
+          <ul>
+            <li><a href="mailto:badlydrawnmilky@gmail.com">badlydrawnmilky@gmail.com</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="footer-copyright">&copy; 2026 BadlyDrawnMilky.</p>
+    </div>
+  </footer>
+
+  <!-- Hidden sources for the section-3 crew canvases (see .bocr-gif-source
+       in style.css): short looping .mp4s, keyed transparent the same way
+       as the hero/M2 clips (see startBlackKeyedCanvas in main.js). These
+       used to be animated GIF <img>s instead, which never actually
+       animated in real-world testing (stuck on frame 1) even served over
+       http:// — <video> avoids that entirely. -->
+  <video class="bocr-gif-source" id="bocr-milky-intro-source" src="assets/web/bocr-milky-intro.mp4?v=5" muted playsinline preload="metadata"></video>
+  <video class="bocr-gif-source" id="bocr-milky-loop-source" src="assets/web/bocr-milky-loop.mp4?v=8" muted loop playsinline preload="metadata"></video>
+  <video class="bocr-gif-source" id="bocr-milky-walk-source" src="assets/web/bocr-milky-walk.mp4?v=1" muted loop playsinline preload="metadata"></video>
+  <video class="bocr-gif-source" id="bocr-milky-pee-source" src="assets/web/bocr-milky-pee.mp4?v=5" muted loop playsinline preload="metadata"></video>
+  <video class="bocr-gif-source" id="bocr-baby-loop-source" src="assets/web/bocr-baby-loop.mp4?v=8" muted loop playsinline preload="metadata"></video>
+  <video class="bocr-gif-source" id="bocr-princess-loop-source" src="assets/web/bocr-princess-loop.mp4?v=8" muted loop playsinline preload="metadata"></video>
+  <!-- Candle spark plays once per click ('ended' handoff, same pattern as
+       Milky's intro->loop above), fire loops until the extinguish timer
+       fires — see the candle-ignite block in main.js. -->
+  <video class="bocr-gif-source" id="candle-spark-source" src="assets/web/candle-spark.mp4?v=3" muted playsinline preload="metadata"></video>
+  <video class="bocr-gif-source" id="candle-fire-source" src="assets/web/candle-fire.mp4?v=3" muted loop playsinline preload="metadata"></video>
+  <!-- Section-4 crew (Milky/Baby/Princess celebrating with party favors).
+       These clips draw their own ink outline in essentially the exact
+       same near-(0,0,0) black a dropped-alpha "background" would be, so
+       a plain black key can't tell ink from background apart — two
+       attempts to reconstruct real alpha via a second matte video (kept
+       in sync first via matching play()/loop calls, then via a shared JS
+       clock) both still let color and matte drift a frame apart in
+       practice, showing up as a black shadow ghosting behind the
+       character. Fixed at the source instead: composited at transcode
+       time over a solid GREEN backing, then keyed at runtime against
+       green instead of black — same one-video startBlackKeyedCanvas
+       pattern as every other clip on the page, including hero Milky,
+       just with the key color swapped (see the CREW_GREEN constants at
+       this call site in main.js, and the ink-override block in
+       applyBlackKey itself). The character's own colors, ink included,
+       all sit far from saturated green, so there's no ambiguity the way
+       there was with black.
+
+       2026-09-13: regenerated from the real per-character alpha masters
+       (assets/Homepage/Seperate Assets/5- {Milky,Baby,Princess} only
+       MP4.mp4 — genuine 3840x2160 HEVC, real alpha channel confirmed by
+       decoding a frame straight to PNG with ffmpeg and checking it in
+       Node: background pixels read alpha=0, interior ink alpha=255 with
+       a real anti-aliased ramp between, ink itself measuring rgb(~50,
+       28,7) — matching the brand logo's own ink almost exactly) instead
+       of whatever produced the previous s4-crew-*-green.mp4 — reported
+       "the lines aren't black, some transparent, some brown" traced
+       back to that previous source having visibly lighter/bled ink to
+       begin with, not just a runtime-keying tuning issue (see
+       applyBlackKey's own ink-override comment in main.js for the full
+       story). The exact crop rect per character (in the master's own
+       3840x2160 space) was solved, not eyeballed: measured this same
+       character's bounding box in BOTH the old already-shipped green
+       clip's own frame 0 (in canvas pixels) and the new master's frame 0
+       (in source pixels), then solved the scale + offset that maps one
+       onto the other, so the character lands at the exact same size/
+       position within the canvas as before — verified by compositing
+       both old and new frame 0 side by side, pixel-identical framing.
+       (Princess's swing is wide enough that no single frame's own
+       bounding box matched cleanly on both axes at once — used her most
+       resting/narrow frame for the fit instead, sized off the stool's
+       own stable height.) Recipe (Milky shown; Baby/Princess only differ
+       in their crop rect + canvas size, 700x890/883x1123x1849,998 and
+       700x1182/1108x1871x1361,159 respectively):
+         ffmpeg -i "5- Milky only MP4.mp4" \
+           -f lavfi -i "color=c=0x00FF00:s=700x614:r=24" \
+           -filter_complex "[0:v]crop=1009:885:1108:1229,
+             scale=700:614:flags=lanczos,format=yuva420p[fg];
+             [1:v][fg]overlay=shortest=1:format=auto,format=yuv420p[out]" \
+           -map "[out]" -an -c:v libx264 -crf 16 -preset slow
+           -movflags +faststart s4-crew-milky-green.mp4 -->
+  <video class="bocr-gif-source" id="s4-crew-milky-source" src="assets/web/s4-crew-milky-green.mp4?v=3" muted loop playsinline preload="metadata"></video>
+  <video class="bocr-gif-source" id="s4-crew-baby-source" src="assets/web/s4-crew-baby-green.mp4?v=3" muted loop playsinline preload="metadata"></video>
+  <video class="bocr-gif-source" id="s4-crew-princess-source" src="assets/web/s4-crew-princess-green.mp4?v=3" muted loop playsinline preload="metadata"></video>
+
+  <!-- Cursor-follow fire-spark particles for section-4's dark "empty room",
+       before the candle is lit (see the s4-embers block in main.js) — a
+       plain fixed-position container, not inside #section-4 itself, so it
+       isn't affected by that section's own stacking/scroll context. Empty
+       here; main.js pre-fills it with a small reused pool of .s4-ember
+       divs (a first version was a single blob following the cursor via a
+       CSS keyframe flicker — replaced per feedback that it read as a flat
+       circle and looked janky/low-framerate; real spawned-per-mousemove
+       particles read as actual sparks instead). -->
+  <div class="s4-embers" id="s4-embers" aria-hidden="true"></div>
+
+  <script src="js/main.js?v=8"></script>
+</body>
+</html>
