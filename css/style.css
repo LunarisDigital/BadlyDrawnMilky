@@ -3859,6 +3859,18 @@ h1, h2, h3 {
   transform: rotate(-4deg) scale(1);
 }
 
+/* beat 3's video (milky-bio-wipe.mp4) is an opaque rectangle matted onto
+   this panel's own #fffaf0 at encode time (see the-cast-milky.html's own
+   comment above .tcm-bio for why), not a transparent-background PNG like
+   every other beat here — so the drop-shadow above, which reads as a
+   shadow hugging the dog's silhouette on those, instead outlines the
+   whole rectangular video frame on this one (a visible "card" floating
+   on the matching cream page background). Dropped here since a shadow
+   around a flat color identical to the backdrop has nothing to add. */
+video.tcm-bio-art-img {
+  filter: none;
+}
+
 .tcm-bio-dots {
   display: flex;
   justify-content: center;
@@ -3914,77 +3926,107 @@ h1, h2, h3 {
   font-style: normal;
 }
 
-/* Mobile: the sticky-panel/tall-beats pairing needs real desktop-style
-   width to read as "paired columns" at all — on a narrow phone the art
-   column would either crush down to nothing or push the sticky panel to
-   a height taller than the viewport (nothing left for it to stick
-   against). Simpler and more reliable to drop the pin entirely here: one
-   static image up top, then the 4 beats stack as plain short paragraphs
-   with the site's usual reveal-text fade, same degrade-gracefully pattern
-   every other complex section on this page already follows for 700px. */
+/* Mirrors the active beat's own text (see the-cast-milky.js's activate())
+   — hidden entirely on desktop, where the real .tcm-bio-beat paragraphs
+   are the visible ones. Crossfades the same way .tcm-bio-art-img does. */
+.tcm-bio-caption-mobile {
+  display: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.tcm-bio-caption-mobile.is-visible {
+  opacity: 1;
+}
+
+/* Mobile: two earlier attempts here didn't land — see the-cast-milky.html's
+   own comment above .tcm-bio for why (a dropped-pin static stack, then a
+   scaled-down side-by-side column). This one keeps .tcm-bio-art-col and
+   .tcm-bio-beats as flex/grid siblings, same as desktop's underlying
+   mechanism, but overlapping in a single-column CSS GRID cell instead of
+   side by side: grid's default stretch still gives the invisible
+   .tcm-bio-beats (and therefore .tcm-bio-art-col, which shares its grid
+   cell) the full scroll height the sticky art panel needs to pin against,
+   but since .tcm-bio-beats no longer needs any VISIBLE width of its own,
+   .tcm-bio-art-col is free to use the entire row width to actually
+   center the art + caption, rather than being squeezed into a narrow
+   side column. */
 @media (max-width: 700px) {
   .tcm-bio {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .tcm-bio-art-col {
-    flex: none;
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .tcm-bio-beats {
+    grid-column: 1;
+    grid-row: 1;
+    opacity: 0;
+    pointer-events: none;
   }
 
   .tcm-bio-art-sticky {
-    position: static;
-    padding-bottom: 0.5rem;
+    top: calc(76px + 1rem);
+    padding: 1.5rem 1.5rem 1rem;
   }
 
   .tcm-bio-art-frame {
-    max-width: 14rem;
+    max-width: clamp(13rem, 62vw, 18rem);
     margin: 0 auto;
   }
 
-  .tcm-bio-art-img {
-    position: static;
-    opacity: 0;
-    display: none;
-  }
-
-  .tcm-bio-art-img.is-active {
-    opacity: 1;
+  .tcm-bio-caption-mobile {
     display: block;
-    position: relative;
-  }
-
-  .tcm-bio-dots {
-    display: none;
-  }
-
-  .tcm-bio-beat {
-    min-height: 0;
-    padding: 1.25rem clamp(1.5rem, 6vw, 2.5rem);
+    max-width: 24rem;
+    margin: 1rem auto 0;
+    padding: 0 1rem;
+    color: #5b4636;
     text-align: center;
-    justify-content: center;
+    font-size: clamp(1.4rem, 6vw, 1.75rem);
+    line-height: 1.3;
+    font-weight: 600;
   }
 
-  .tcm-bio-beat h2 {
-    font-size: clamp(1.6rem, 7vw, 2rem);
-  }
-
-  .tcm-bio-beat p {
-    font-size: clamp(1.1rem, 5vw, 1.3rem);
+  .tcm-bio-caption-mobile em {
+    color: #df760a;
+    font-style: normal;
   }
 }
 
-/* Origin Story: a manga-style strip built from 3 short clips (see
-   the-cast-milky.html's own comment on .tcm-manga for why these are plain
-   <video>, not black-keyed canvases). One tall panel (the rainy-night
-   rescue) beside two stacked wide panels — a classic manga page rhythm —
-   with bold dark "ink" gutters/borders standing in for hand-drawn panel
-   lines, and a white hard-edged narration box per panel (top-left corner,
-   like a manga caption box) instead of a bottom caption bar, so it reads
-   as part of the comic rather than a photo-with-subtitle. */
+/* Origin Story, redesigned 2026-10-14: a manga-style strip built from 3
+   short clips (see the-cast-milky.html's own comment on .tcm-manga for why
+   these are plain <video>, not black-keyed canvases). Used to be one
+   clipped "page" with the 3 panels flush against each other and captions
+   as tiny corner overlays sitting ON TOP of the clip; now each panel is
+   its own standalone card with real vertical gap between them (that gap
+   is what gives this section its longer scroll) and the caption moved
+   into that gap as a proper note card next to/under its panel, big enough
+   to read without covering any of the scene. */
 .tcm-origin {
-  padding: clamp(3rem, 4.58vw, 5.5rem) clamp(1.5rem, 2.5vw, 3rem);
+  /* --tcm-origin-pad-x is reused by .tcm-panel-frame's mobile full-bleed
+     margins below, so the two stay in sync by construction instead of a
+     second hand-copied clamp() that can drift out of sync with this one. */
+  --tcm-origin-pad-x: clamp(1.5rem, 2.5vw, 3rem);
+  padding: clamp(3rem, 4.58vw, 5.5rem) var(--tcm-origin-pad-x);
   background: #fdedcb;
   text-align: center;
+  /* Deliberately NOT overflow-x:hidden here (the old per-panel sweep used
+     to need it, to clip translateX past this section's own edges) — now
+     that .tcm-manga itself is the pinned, position:sticky element (see
+     .tcm-manga-stage.is-spiral above), putting overflow anything-but-
+     visible on one of ITS ancestors breaks its stickiness: overflow-x
+     without overflow-y forces overflow-y to compute to `auto`, which
+     makes this section its own sticky containing block instead of the
+     viewport, and the pin stops tracking scroll correctly (panels went
+     fully invisible at some scroll positions — caught live via a local
+     serve, see [[badlydrawnmilky-overflow-x-hidden-breaks-sticky]]).
+     .tcm-manga's own overflow:hidden (scoped to just that sticky box, not
+     an ancestor of it) clips the panels' sweep instead — same effect,
+     without breaking its own position:sticky. */
 }
 
 .tcm-origin-intro {
@@ -4003,120 +4045,209 @@ h1, h2, h3 {
   margin: 1rem 0 clamp(1.5rem, 2.08vw, 2.5rem);
 }
 
-/* A single comic "page": 3 clipped panels stacked top-to-bottom — a wide
-   rectangle, a wedge, then a wide rectangle again — instead of plain
-   horizontal gutters. No drawn border or divider lines — panels sit flush
-   against each other, so the angled clip-path cuts themselves are the
-   only thing marking a panel edge.
-
-   The dividers are deliberately shallow (line A drifts 2% of the page's
-   height across its width, line B drifts 8%) — this used to be 4% and
-   24%, which made line B taper panel 2 down to a near-zero-width point on
-   the right and chewed up most of that clip's own scene. Keeping both
-   drifts small means every panel keeps most of its frame. The two lines
-   are centered on 34% and 66% of the page (not 40%/62%) so panel 2's own
-   share of the strip is the biggest of the three, not the smallest.
-
-   Each panel's own bounding box (top/height below) is sized to just the
-   band that polygon actually needs, NOT the full page (inset: 0 on all 3
-   was the original, broken version of this — every video got stretched
-   to cover the whole page height before its clip-path revealed only a
-   thin sliver of that, blowing each clip up 2-3x and cropping away
-   everything but a tiny zoomed-in center strip). clip-path coordinates
-   here are local to that smaller box (0-100% of ITS OWN height), and each
-   video is pre-cropped (see assets/TheCast/Milky/_source/) to roughly
-   that box's own aspect ratio, so object-fit: cover only trims a little. */
-.tcm-manga {
+/* Pinned stage wrapper, added 2026-10-15 so the 3 panels can take over
+   one single viewport-filling box instead of sweeping past independently
+   in normal flow (see the-cast-milky.html's own comment on .tcm-origin
+   for why that first attempt showed all 3 at once). Plain, un-classed
+   .tcm-manga-stage has no height of its own — that IS the fallback for
+   prefers-reduced-motion and no-JS, where .tcm-manga below just stays a
+   normal static column and nothing in this block ever applies.
+   .is-spiral is added by the-cast-milky.js once it's confirmed motion is
+   wanted, and --tcm-panel-count is set alongside it so this works for
+   however many panels end up in the strip without a hand-copied number. */
+.tcm-manga-stage {
   position: relative;
-  max-width: 40rem;
+}
+
+.tcm-manga-stage.is-spiral {
+  height: calc(var(--tcm-panel-count, 3) * 100vh);
+}
+
+/* The strip itself: 3 panel/caption pairs. In the default (no .is-spiral)
+   state this is just a stacked column with a tall gap between pairs —
+   that gap is what used to stretch this section's scroll distance out,
+   same idea as .tcm-bio-beat's min-height for Personality & Bio. Once
+   .is-spiral is on the stage, this becomes the sticky pinned box instead
+   (the panels inside go absolute/stacked — see below) — overflow:hidden
+   here clips their scroll-linked sweep to this box's own edges, same
+   reasoning as .tcm-origin's own overflow-x:hidden one level up (scoped
+   tight, not on html/body, so it can never touch position:sticky
+   elsewhere on the page — see that comment for why that matters here). */
+.tcm-manga {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4.5rem, 11vw, 8rem);
+  max-width: 64rem;
   margin: 0 auto;
-  aspect-ratio: 37 / 50;
-  background: #fffaf0;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  transform: rotate(-0.5deg);
-  filter: drop-shadow(0 10px 18px rgba(43, 31, 26, 0.25));
 }
 
-.tcm-panel {
+.tcm-manga-stage.is-spiral .tcm-manga {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  /* Real CSS 3D, not a 2D fake — this is the "camera distance" for every
+     panel's rotateY/translateZ (see the-cast-milky.js's own comment on
+     this whole block for the spiral-drum mechanism). Must live on the
+     panels' direct parent to apply at all; a smaller number here would
+     exaggerate the fisheye/foreshortening, a larger one flattens it out
+     toward an orthographic-looking rotation. */
+  perspective: 1700px;
+}
+
+/* Stacked on top of each other inside the pinned box, each mounted on its
+   own loop of a shared 3D drum that the-cast-milky.js rotates by setting
+   `transform: translateY(...) rotateY(...) translateZ(...)` per frame off
+   one shared scroll-progress value — see that block's own comment for why
+   rotateY-then-translateZ (not the reverse, and no counter-rotation) is
+   what makes a panel read as "glued to the spinning drum" rather than "a
+   sign orbiting while staying face-on". backface-visibility:hidden is
+   what makes a panel actually vanish once it's rotated past edge-on
+   instead of rendering a mirror-flipped version of its own front face. */
+.tcm-manga-stage.is-spiral .tcm-panel {
   position: absolute;
-  left: 0;
-  width: 100%;
-  margin: 0;
-  background: #000;
-  overflow: hidden;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
-.tcm-panel video {
+/* inset:0 above gives each panel a real 100vh-tall box to center itself
+   in (needed so every panel's rotation pivots around the same shared
+   point) — but that also hands them a lot more height than their own
+   content needs, and the mobile layout's own `flex: 1 1 auto` (meant for
+   the old content-sized, non-pinned column) treats that leftover height
+   as free space to grow into. In a column flex direction that's the
+   main axis, so it was stretching `.tcm-panel-frame` taller than its
+   `aspect-ratio` while its width stayed capped — the frame rendered
+   squashed/distorted, caught on a real mobile-width check (390px) via a
+   same-origin iframe. Pinning flex-grow back to 0 here keeps both the
+   frame and caption at their natural content size on any screen width;
+   `.tcm-panel`'s own `justify-content: center` (unconditional, further
+   below) still centers that natural-size pair as a group within the
+   taller box. */
+.tcm-manga-stage.is-spiral .tcm-panel-frame,
+.tcm-manga-stage.is-spiral .tcm-panel-caption {
+  flex-grow: 0;
+}
+
+/* Each <figure> is the zigzag row: panel frame on one side, caption card
+   on the other. .tcm-panel-2 flips the row so the strip reads like a page
+   turning left/right rather than one dead-center column — the only panel
+   that needs its own override since 1 and 3 share the default order. */
+.tcm-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  margin: 0;
+  text-align: left;
+  /* transform/opacity are set per-frame by the-cast-milky.js's
+     scroll-sweep block (or never touched at all under
+     prefers-reduced-motion, in which case this just sits at its normal
+     static position/opacity — see that block's own comment). */
+  will-change: transform, opacity;
+}
+
+.tcm-panel-2 {
+  flex-direction: row-reverse;
+}
+
+.tcm-panel-frame {
+  position: relative;
+  flex: 1 1 60%;
+  max-width: 38rem;
+  aspect-ratio: 2 / 1;
+  background: #000;
+  border: 3px solid #2b1f1a;
+  border-radius: 0.6rem;
+  overflow: hidden;
+  box-shadow: 0 10px 18px rgba(43, 31, 26, 0.25);
+}
+
+/* Each panel sits at a slight, hand-placed tilt (alternating direction so
+   neighbors don't lean the same way), same idea as .tcm-quote-doodle's
+   sticky-note tilt elsewhere on this page. */
+.tcm-panel-1 .tcm-panel-frame,
+.tcm-panel-3 .tcm-panel-frame {
+  transform: rotate(-1deg);
+}
+
+.tcm-panel-2 .tcm-panel-frame {
+  transform: rotate(1deg);
+}
+
+.tcm-panel-frame video {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-/* Each panel's box is sized to just the band its own shape needs (see the
-   comment above .tcm-manga) — top/height are % of the whole page, and the
-   clip-path points are % of that panel's OWN box, not the full page. The
-   two ink dividers run left 33%/right 35% (line A) and left 70%/right 62%
-   (line B) of the full page; each panel's clip-path lands exactly on
-   those lines (no inset) so the video fill touches the ink line with no
-   gutter sliver of page showing through. */
-.tcm-panel-1 {
-  top: 0;
-  height: 35%;
-  clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 94.29%);
-}
-
-.tcm-panel-2 {
-  top: 33%;
-  height: 37%;
-  clip-path: polygon(0% 0%, 100% 5.41%, 100% 78.38%, 0% 100%);
-}
-
-.tcm-panel-3 {
-  top: 62%;
-  height: 38%;
-  clip-path: polygon(0% 21.05%, 100% 0%, 100% 100%, 0% 100%);
-}
-
-.tcm-panel figcaption {
+.tcm-panel-num {
   position: absolute;
-  max-width: calc(100% - 2rem);
+  top: 0.6rem;
+  left: 0.6rem;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #fffaf0;
+  border: 2px solid #2b1f1a;
+  color: #2b1f1a;
+  font-family: 'Caveat', cursive;
+  font-weight: 700;
+  font-size: 1.1rem;
+  z-index: 1;
+}
+
+/* The caption card: lives beside (desktop) or under (mobile) its panel
+   instead of on top of it. The small matching circled number is what
+   visually ties a caption back to its panel now that they're no longer
+   touching. */
+.tcm-panel-caption {
+  flex: 1 1 36%;
+  max-width: 20rem;
+  margin: 0;
   background: #fffaf0;
   color: #5b4636;
   border: 2px solid #2b1f1a;
-  border-radius: 0.35rem;
-  padding: 0.3rem 0.55rem;
-  font-size: clamp(0.78rem, 0.74vw, 0.9rem);
+  border-radius: 0.5rem;
+  padding: 0.9rem 1.1rem;
+  font-size: clamp(0.95rem, 1.2vw, 1.05rem);
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.45;
+  box-shadow: 4px 4px 0 rgba(43, 31, 26, 0.18);
+}
+
+.tcm-panel-1 .tcm-panel-caption,
+.tcm-panel-3 .tcm-panel-caption {
+  transform: rotate(1deg);
+}
+
+.tcm-panel-2 .tcm-panel-caption {
   transform: rotate(-1deg);
-  transform-origin: center;
-  backface-visibility: hidden;
-  -webkit-font-smoothing: antialiased;
-  box-shadow: 3px 3px 0 rgba(43, 31, 26, 0.18);
 }
 
-.tcm-panel-1 figcaption {
-  top: 4%;
-  left: 4%;
-  max-width: 60%;
-}
-
-.tcm-panel-2 figcaption {
-  top: 28%;
-  left: 3%;
-  max-width: 42%;
-}
-
-.tcm-panel-3 figcaption {
-  top: 55%;
-  left: 4%;
-  max-width: 60%;
+.tcm-panel-caption-num {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-right: 0.45rem;
+  border-radius: 50%;
+  background: rgba(91, 70, 54, 0.12);
+  font-family: 'Caveat', cursive;
+  font-weight: 700;
+  font-size: 0.95rem;
+  vertical-align: middle;
 }
 
 .tcm-origin-link {
-  margin-top: clamp(1.5rem, 2.08vw, 2.5rem);
+  margin-top: clamp(2rem, 3vw, 3rem);
   color: #6b4423;
   font-size: 0.9rem;
 }
@@ -4135,13 +4266,52 @@ h1, h2, h3 {
 
 @media (max-width: 700px) {
   .tcm-manga {
-    aspect-ratio: 3 / 4.6;
+    gap: clamp(3.5rem, 14vw, 5rem);
   }
 
-  .tcm-panel-2 figcaption {
-    max-width: 45%;
-    font-size: 0.72rem;
-    padding: 0.25rem 0.4rem;
+  .tcm-panel,
+  .tcm-panel-2 {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .tcm-panel-frame,
+  .tcm-panel-caption {
+    max-width: 100%;
+    flex: 1 1 auto;
+  }
+
+  /* Bigger on mobile means edge-to-edge: break the frame out of
+     .tcm-origin's own side padding by growing it by exactly 2x that
+     padding and pulling it back with matching negative margins — not the
+     100vw + negative-half-viewport-width trick, which measures past the
+     page's vertical scrollbar and was pushing a few px of horizontal
+     scroll onto the WHOLE page, which in turn meant every position:sticky
+     element on this page (the Bio art panel, the pull-quote) needed
+     overflow-x:hidden on <body> to hide that scrollbar — and overflow
+     other than visible on a sticky element's ancestor is exactly what
+     breaks position:sticky. This version is sized off the padding itself
+     (--tcm-origin-pad-x, set on .tcm-origin above), so it can never
+     overflow the viewport and needs no overflow-x hack anywhere. Square
+     corners once it's flush with the screen edge — a rounded corner reads
+     wrong sitting on the fold. */
+  .tcm-panel-frame {
+    width: calc(100% + 2 * var(--tcm-origin-pad-x));
+    max-width: calc(100% + 2 * var(--tcm-origin-pad-x));
+    margin-left: calc(-1 * var(--tcm-origin-pad-x));
+    margin-right: calc(-1 * var(--tcm-origin-pad-x));
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+  }
+
+  .tcm-panel-1 .tcm-panel-frame,
+  .tcm-panel-2 .tcm-panel-frame,
+  .tcm-panel-3 .tcm-panel-frame,
+  .tcm-panel-1 .tcm-panel-caption,
+  .tcm-panel-2 .tcm-panel-caption,
+  .tcm-panel-3 .tcm-panel-caption {
+    transform: none;
   }
 }
 
@@ -4161,10 +4331,60 @@ h1, h2, h3 {
    .reveal-text's own .is-revealed class from the shared IntersectionObserver
    in the-cast-milky.js, so nothing here needed a second observer. */
 .tcm-quote {
+  position: relative;
   padding: clamp(3rem, 4.58vw, 5.5rem) clamp(1.5rem, 2.5vw, 3rem);
   background: #fdeef1;
   text-align: center;
   overflow: hidden;
+}
+
+/* Loose decorative doodles scattered in the section's own side margins —
+   see the-cast-milky.html's own comment above .tcm-quote for why these
+   two aren't tied to any particular word. Only shown once that margin is
+   actually wide enough to hold them without crowding the centered
+   column (.tcm-bits-grid alone caps at 68rem/~1088px, so anything
+   narrower than 1000px has essentially no margin left to put them in). */
+.tcm-quote-deco {
+  display: none;
+  position: absolute;
+  width: clamp(6rem, 8vw, 9rem);
+  height: auto;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.tcm-quote-deco-puddle {
+  left: clamp(0.5rem, 2.5vw, 3rem);
+  bottom: clamp(2rem, 6vw, 5rem);
+  width: clamp(9rem, 12vw, 14rem);
+  transform: rotate(-6deg);
+}
+
+.tcm-quote-deco-poo {
+  right: clamp(0.5rem, 2.5vw, 3rem);
+  top: clamp(2rem, 7vw, 6rem);
+  transform: rotate(8deg);
+}
+
+@media (min-width: 1000px) {
+  .tcm-quote-deco {
+    display: block;
+  }
+}
+
+/* Real mouse cursor swapped for .tcm-pet-cursor anywhere over this whole
+   section (see that element's own comment below) — fine-pointer only, so
+   touch devices (no cursor to replace, no hover to trigger the doodle
+   clip either) are untouched. The .tcm-bit override is needed because
+   those flip-card buttons set their own explicit `cursor: pointer`,
+   which otherwise wins back over this section-wide `none` the moment the
+   pointer is over a card — leaving the real OS pointer visible right
+   alongside the floating paw instead of actually replacing it. */
+@media (hover: hover) and (pointer: fine) {
+  .tcm-quote.has-pet-cursor,
+  .tcm-quote.has-pet-cursor .tcm-bit {
+    cursor: none;
+  }
 }
 
 .tcm-quote-inner {
@@ -4175,17 +4395,78 @@ h1, h2, h3 {
   flex-wrap: wrap;
 }
 
-/* Placeholder doodle sitting beside the quote — artist request: a small
-   loose sketch/sticker of Milky mid-mischief (tail up, cheeky grin) to
-   sit next to the "3 P's" line, not a cleaned-up full-body pose like the
-   hero art, more like a margin doodle. Idle wobble only starts once
-   revealed (see .reveal-text.is-revealed below) so it doesn't visibly
-   mid-wobble while still off-screen/invisible. */
+/* Doodle sitting beside the quote: milky-wag-tail.mp4, a tight square
+   crop of the real "milky wag tail" clip (see the-cast-milky.html's own
+   comment above this section for the source). Sits at rest on its own
+   first frame — the-cast-milky.js only calls .play() while it's actually
+   hovered/tapped, so it reads as a looping tail-wag sticker you have to
+   reach for, not a clip autoplaying in the background. Idle wobble only
+   starts once revealed (see .reveal-text.is-revealed below) so it
+   doesn't visibly mid-wobble while still off-screen/invisible — runs
+   independently of the hover-triggered playback, so a revealed doodle is
+   always gently rocking whether or not it's currently playing. */
 .tcm-quote-doodle {
   width: clamp(5.5rem, 9vw, 8.5rem);
-  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 50%;
   transform: rotate(-5deg);
   filter: drop-shadow(0 8px 14px rgba(91, 70, 54, 0.18));
+}
+
+/* Follows the real cursor while .has-pet-cursor is on .tcm-quote (added/
+   removed by the-cast-milky.js on pointerenter/pointerleave of that
+   section) — position:fixed, left/top set per frame in JS rather than a
+   CSS transform:translate, so the standalone `rotate` property below is
+   free to animate on its own without the two fighting over the same
+   `transform`. transform-origin sits near the cuff/wrist end of the paw
+   art (bottom-left of the source image) so rotating reads as the whole
+   forearm pivoting at the wrist — the paw tip (top-right of the art) is
+   what actually swings down to "pet" on click, not the image spinning
+   around its own center. Hidden (opacity 0, see .is-active below) until
+   the pointer actually enters the section, and never shown at all on
+   touch (see the cursor:none media query above — this follower would be
+   pointless without a real pointer to hide). */
+.tcm-pet-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: clamp(4.5rem, 7.5vw, 6.5rem);
+  height: auto;
+  margin: 0;
+  z-index: 999;
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: 22% 88%;
+  rotate: -10deg;
+  filter: drop-shadow(0 6px 10px rgba(43, 31, 26, 0.3));
+}
+
+.tcm-pet-cursor.is-active {
+  opacity: 1;
+  animation: tcm-pet-idle 2.4s ease-in-out infinite;
+}
+
+.tcm-pet-cursor.is-petting {
+  animation: tcm-pet-down 0.5s ease;
+}
+
+@keyframes tcm-pet-idle {
+  0%, 100% { rotate: -10deg; }
+  50% { rotate: 8deg; }
+}
+
+@keyframes tcm-pet-down {
+  0% { rotate: -10deg; }
+  45% { rotate: 30deg; }
+  100% { rotate: -10deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tcm-pet-cursor.is-active,
+  .tcm-pet-cursor.is-petting {
+    animation: none;
+  }
 }
 
 .tcm-quote-doodle.is-revealed {
@@ -4392,22 +4673,23 @@ h1, h2, h3 {
 .tcm-bit:nth-child(2) .tcm-bit-face-front { background: #e3f1ff; }
 .tcm-bit:nth-child(3) .tcm-bit-face-front { background: #fff3cf; }
 
-.tcm-bit-face-front img {
+.tcm-bit-face-back {
+  background: #fffaf0;
+  overflow: hidden;
+  transform: rotateY(180deg);
+}
+
+.tcm-bit-face-back img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: top center;
+  object-position: center;
   position: absolute;
   inset: 0;
 }
 
-.tcm-bit-face-back {
-  background: #5b4636;
-  transform: rotateY(180deg);
-}
-
 .tcm-bit-label {
-  color: #fffaf0;
+  color: #5b4636;
   font-weight: 700;
   font-size: clamp(1rem, 1vw, 1.15rem);
   line-height: 1.35;

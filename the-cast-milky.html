@@ -88,22 +88,60 @@
        CSS sticky + an IntersectionObserver per beat (see
        the-cast-milky.js) instead of continuous rAF math, since nothing
        here needs sub-pixel positioning, only "which beat is centered
-       right now." Beat 0 reuses the existing maraca cutout; beat 1 reuses
-       the existing milky-gallery-pee.png (already drawn, and it's
-       literally the pee joke); beats 2/3 have no matching art yet, so
-       they use the site's placeholder portrait per the redesign brief
-       ("use the placeholder for now"). Falls back to a plain stacked
-       column (no sticky, no pin) under 700px — see that media query's own
-       comment below for why. -->
+       right now." Beat 0 reuses the existing maraca cutout. Beats 1-3 got
+       real dedicated art 2026-10-15 (milky-bio-*, cropped/resized from 4K
+       originals — see that folder's own spaced-name source files),
+       replacing an earlier reused gallery image (beat 1) and the site's
+       placeholder portrait (beats 2/3): beat 1 is Milky nuzzling a rose
+       with hearts, matching "pees to mark you as his" more directly than
+       the old literal-peeing gallery shot did; beat 2 is him mid-
+       handstand through a hoop for "here to have a good time"; beat 3 is
+       a real <video> (milky-bio-wipe.mp4) of him turning to discover the
+       mess he can't reach, for "a little help is always appreciated" —
+       its source clip carries a genuine HEVC alpha channel (ffprobe
+       doesn't surface it, but forcing yuva420p on decode does; same
+       "HEVC-alpha trick" family as the homepage's character clips, see
+       main.js's startAlphaMattedCanvas comment), which a plain re-encode
+       to opaque h264 silently drops — stripping the alpha left the RGB
+       plane's own black backing exposed where the clip was meant to read
+       as transparent, blacking out the whole background. Composited onto
+       this panel's own #fffaf0 at encode time (ffmpeg color=0xfffaf0
+       overlay) instead of carried through as real video transparency,
+       since the frame always sits on that exact flat color here — far
+       simpler than standing up a canvas alpha-matte compositor for one
+       decorative loop.
+
+       Under 700px: two earlier mobile attempts didn't work out — a
+       dropped-pin static-stack (image stopped corresponding to whatever
+       beat was on screen) and a scaled-down side-by-side column (the
+       user explicitly didn't want the beat text itself visibly
+       scrolling past, just swapping like the image does, and wanted the
+       art centered rather than parked in a narrow left column). This
+       version instead makes .tcm-bio a single-column CSS GRID with
+       .tcm-bio-art-col and .tcm-bio-beats placed in the SAME grid cell
+       (both grid-column/row: 1) — grid's own stretch-to-fill-the-cell
+       default is what gives the invisible .tcm-bio-beats (opacity: 0,
+       pointer-events: none, still real DOM text so it stays in the
+       accessibility tree and still drives the IntersectionObserver/
+       scroll-trigger length) and the sticky art panel the SAME full
+       height, so .tcm-bio-art-sticky still has real room to pin itself
+       — same underlying mechanism as desktop's flex-stretch, just
+       overlapping instead of side-by-side, since nothing here needs the
+       beats to occupy any visible width of their own anymore.
+       the-cast-milky.js's existing beat-activate() now also mirrors the
+       current beat's own heading/paragraph markup (single source of
+       truth, not duplicated by hand here) into .tcm-bio-caption-mobile,
+       a plain centered, desktop-hidden paragraph that crossfades the
+       same way the art does — see that function's own comment. -->
   <section class="tcm-bio" id="tcm-bio">
     <div class="tcm-bio-art-col">
       <div class="tcm-bio-art-sticky">
         <p class="tcm-eyebrow reveal-text">Personality</p>
         <div class="tcm-bio-art-frame">
           <img class="tcm-bio-art-img is-active" data-beat="0" src="assets/TheCast/Milky/milky-gallery-maraca.png" alt="Milky shaking a pair of maracas, grinning" width="500" height="454" loading="lazy">
-          <img class="tcm-bio-art-img" data-beat="1" src="assets/TheCast/Milky/milky-gallery-pee.png" alt="Milky marking his territory" width="500" height="454" loading="lazy">
-          <img class="tcm-bio-art-img" data-beat="2" src="assets/TheCast/Milky/milky-portrait.png" alt="Illustration of Milky having a good time, not being a good boy (placeholder)" width="579" height="631" loading="lazy">
-          <img class="tcm-bio-art-img" data-beat="3" src="assets/TheCast/Milky/milky-portrait.png" alt="Illustration of Milky needing a little help with butt-wiping duty (placeholder)" width="579" height="631" loading="lazy">
+          <img class="tcm-bio-art-img" data-beat="1" src="assets/TheCast/Milky/milky-bio-claim.png" alt="Milky cuddled up with a rose in his mouth, hearts floating around him" width="700" height="622" loading="lazy">
+          <img class="tcm-bio-art-img" data-beat="2" src="assets/TheCast/Milky/milky-bio-goodtime.png" alt="Milky mid-handstand, flipping through a hoop" width="900" height="544" loading="lazy">
+          <video class="tcm-bio-art-img" data-beat="3" src="assets/TheCast/Milky/milky-bio-wipe.mp4" poster="assets/TheCast/Milky/milky-bio-wipe-poster.jpg" autoplay loop muted playsinline preload="metadata" aria-label="Milky turning around to discover the mess behind him, needing a little help"></video>
         </div>
         <div class="tcm-bio-dots" aria-hidden="true">
           <span class="tcm-bio-dot is-active" data-dot="0"></span>
@@ -111,6 +149,7 @@
           <span class="tcm-bio-dot" data-dot="2"></span>
           <span class="tcm-bio-dot" data-dot="3"></span>
         </div>
+        <p class="tcm-bio-caption-mobile" aria-hidden="true"></p>
       </div>
     </div>
 
@@ -130,52 +169,78 @@
     </div>
   </section>
 
-  <!-- Origin Story: 3 source clips (assets/TheCast/Milky/origin-*.mp4,
+  <!-- Origin Story, redesigned 2026-10-14, panel motion rebuilt several
+       times 2026-10-15 (see [[badlydrawnmilky-cast-page-origin-3p-knownfor-2026-10-15]]
+       for the full history): 3 source clips (assets/TheCast/Milky/origin-*.mp4,
        cropped/transcoded down from the original 4K masters — see that
-       folder's _source subfolder for the untouched originals) laid out as
-       a manga-style strip — one tall panel (the rainy-night rescue) beside
-       two stacked wide panels (the bath / the feast), bold ink gutters,
-       hand-lettered captions in Milky's own "voice" per the txt file's
-       "told by milky" framing. Panels are plain opaque <video> (not
+       folder's _source subfolder for the untouched originals) laid out
+       as 3 standalone comic panels with real breathing room between them
+       instead of the old flush clip-path "page" — captions live in the
+       gap beside/under each panel as their own tilted note card, with a
+       matching ink-circle number tying a caption back to its panel.
+
+       Panel motion is a true PINNED stage with a literal 3D spiral drum,
+       built off a reference image of a ribbon coiling around a vertical
+       pole with each loop's front-facing face marked as where a panel
+       mounts — real CSS 3D (`perspective` + `rotateY`/`translateZ`, not
+       2D translate/scale fakery). .tcm-manga-stage wraps the 3 panels
+       and gets real scroll height; the-cast-milky.js adds .is-spiral to
+       it (skipped under prefers-reduced-motion, so that's also the
+       no-JS fallback) which turns .tcm-manga into the position:sticky
+       pinned box (now also the perspective root) and stacks all 3
+       <figure class="tcm-panel"> on top of each other inside it, each
+       one mounted on its own loop of a shared drum the-cast-milky.js
+       rotates off scroll — see that block's own comment for the
+       rotateY-then-translateZ mechanics that make a panel actually swing
+       around a shared central axis, the `scale()` that cancels out
+       translateZ's own perspective-magnification (without it, panels
+       overflowed .tcm-manga's clip on both sides even at rest — not a
+       sizing bug, a 3D-math one), and how scroll progress is reshaped so
+       the rotation decelerates into each panel and holds there through
+       a dead zone before the next transition unlocks, instead of
+       scrolling 1:1 with rotation. Panels are plain opaque <video> (not
        black-keyed canvases like the homepage's character clips) since
        these are full illustrated scenes, not isolated cutouts — see
-       startBlackKeyedCanvas's own comment in main.js for why that function
-       exists at all; nothing here needs it. -->
+       startBlackKeyedCanvas's own comment in main.js for why that
+       function exists at all; nothing here needs it. -->
   <section class="tcm-origin">
     <p class="tcm-eyebrow reveal-text">Origin Story <span class="tcm-eyebrow-sub">(told by Milky)</span></p>
     <p class="tcm-origin-intro reveal-text">Milky is a real dog, living alongside his owner and Baby for the past 16 human years &mdash; 112 dog years. (Still a baby.)</p>
     <p class="tcm-origin-leadin reveal-text">It all happened 16 years ago&hellip;</p>
 
-    <!-- Three panels, stacked top to bottom, cut by two angled "speed lines"
-         instead of plain horizontal gutters (see .tcm-manga in style.css) —
-         a wide panel, a thin wedge that tapers to a point on the right, then
-         a wide panel again, each video pre-cropped from its own 4K source
-         (assets/TheCast/Milky/_source/) to its panel's own aspect ratio
-         rather than relying on CSS to crop a full-bleed clip, so there's no
-         wasted/oversized video underneath the clip-path. Panels sit flush
-         against each other (no gutter, no drawn border) — the clip-path
-         cuts themselves are the only thing marking the panel edges. -->
-    <div class="tcm-manga">
-      <figure class="tcm-panel tcm-panel-1">
-        <video src="assets/TheCast/Milky/origin-1-rescue.mp4" poster="assets/TheCast/Milky/origin-1-rescue-poster.jpg" autoplay loop muted playsinline preload="metadata"></video>
-        <figcaption>Milky got kidnapped off the street &mdash; on a rainy night, by the human Milky now calls &ldquo;owner.&rdquo;</figcaption>
-      </figure>
+    <div class="tcm-manga-stage">
+      <div class="tcm-manga">
+        <figure class="tcm-panel tcm-panel-1">
+          <div class="tcm-panel-frame">
+            <span class="tcm-panel-num" aria-hidden="true">01</span>
+            <video src="assets/TheCast/Milky/origin-1-rescue.mp4" poster="assets/TheCast/Milky/origin-1-rescue-poster.jpg" autoplay loop muted playsinline preload="metadata"></video>
+          </div>
+          <figcaption class="tcm-panel-caption"><span class="tcm-panel-caption-num" aria-hidden="true">01</span>Milky got kidnapped off the street &mdash; on a rainy night, by the human Milky now calls &ldquo;owner.&rdquo;</figcaption>
+        </figure>
 
-      <figure class="tcm-panel tcm-panel-2">
-        <video src="assets/TheCast/Milky/origin-2-bath.mp4" poster="assets/TheCast/Milky/origin-2-bath-poster.jpg" autoplay loop muted playsinline preload="metadata"></video>
-        <figcaption>Milky tried to escape&hellip;</figcaption>
-      </figure>
+        <figure class="tcm-panel tcm-panel-2">
+          <div class="tcm-panel-frame">
+            <span class="tcm-panel-num" aria-hidden="true">02</span>
+            <video src="assets/TheCast/Milky/origin-2-bath.mp4" poster="assets/TheCast/Milky/origin-2-bath-poster.jpg" autoplay loop muted playsinline preload="metadata"></video>
+          </div>
+          <figcaption class="tcm-panel-caption"><span class="tcm-panel-caption-num" aria-hidden="true">02</span>Milky tried to escape&hellip;</figcaption>
+        </figure>
 
-      <figure class="tcm-panel tcm-panel-3">
-        <video src="assets/TheCast/Milky/origin-3-feast.mp4" poster="assets/TheCast/Milky/origin-3-feast-poster.jpg" autoplay loop muted playsinline preload="metadata"></video>
-        <figcaption>But Milky got fed well. TOO well. So Milky stayed &mdash; for the next 16 years.</figcaption>
-      </figure>
+        <figure class="tcm-panel tcm-panel-3">
+          <div class="tcm-panel-frame">
+            <span class="tcm-panel-num" aria-hidden="true">03</span>
+            <video src="assets/TheCast/Milky/origin-3-feast.mp4" poster="assets/TheCast/Milky/origin-3-feast-poster.jpg" autoplay loop muted playsinline preload="metadata"></video>
+          </div>
+          <figcaption class="tcm-panel-caption"><span class="tcm-panel-caption-num" aria-hidden="true">03</span>But Milky got fed well. TOO well. So Milky stayed &mdash; for the next 16 years.</figcaption>
+        </figure>
+      </div>
     </div>
 
     <p class="tcm-origin-link">the full story (from the human) <span class="tcm-soon">coming soon</span></p>
   </section>
 
-  <!-- Brand Spirit / Catchphrase + Signature Bits, redesigned 2026-10-14:
+  <!-- Brand Spirit / Catchphrase + Signature Bits, redesigned 2026-10-14,
+       doodle/cursor/Known-For art swapped in 2026-10-15 for real assets:
        the pull-quote (still Caveat, still the one spot on this page that
        breaks from the site's usual rounded sans) now "scrawls" onto the
        page word by word on scroll-in instead of just fading in as one
@@ -187,23 +252,57 @@
        image) the moment the quote reveals, so it reads as Milky
        underlining his own line rather than a static asset.
 
+       The doodle is now milky-wag-tail.mp4 (cropped/transcoded from the
+       4K "milky wag tail.mp4" master — tight square crop around Milky
+       himself, see that folder's own original for the untouched wide
+       version) in place of the old placeholder portrait: a plain <video>,
+       paused on its first frame at rest, playing only while hovered
+       (the-cast-milky.js) — tap toggles it on touch, same
+       hover-and-tap-both pattern as the flip cards below. .tcm-pet-cursor
+       is a second, independent effect scoped to this whole section (not
+       just the doodle): while a fine-pointer mouse is anywhere over
+       .tcm-quote, the real cursor is hidden and this floating
+       milky-pet-palm.png takes its place, idly rocking back and forth,
+       and dipping down into a "pet" motion on click — see
+       the-cast-milky.js's own comment on the cursor-follow block for why
+       it's a followed element instead of a CSS `cursor: url()` (that
+       can't be kept animating at rest or re-triggered on click). Skipped
+       entirely on touch (no real cursor to replace there).
+
        "Known For" is now a row of tap/hover flip-cards, not static badge
-       cards — front face is just the illustration (placeholder for now,
-       no label) so flipping genuinely reveals something instead of
-       repeating what's already on screen; back face is the same trait
-       label the old static badge cards used verbatim (nothing new
-       invented — see [[badlydrawnmilky-cast-page-content-fidelity]] on
-       why captions here stay exactly on the txt file's own wording
-       rather than being expanded into new flavor text). Flipped via a
-       shared .is-flipped toggle in the-cast-milky.js (click/tap + hover,
-       not hover-only, since hover doesn't exist on touch). -->
+       cards. Flipped (front = what the ring on the call said, back =
+       the actual art), per request — front face shows the trait label
+       the old static badge cards used verbatim (nothing new invented —
+       see [[badlydrawnmilky-cast-page-content-fidelity]] on why captions
+       here stay exactly on the txt file's own wording rather than being
+       expanded into new flavor text); back face is the real matching
+       illustration (milky-bit-feces/fart/prank.png, resized down from
+       the 2000×2000 originals — see that folder's own spaced-name files)
+       now that actual art exists for each one, in place of the earlier
+       shared placeholder portrait. Flipped via a shared .is-flipped
+       toggle in the-cast-milky.js (click/tap + hover, not hover-only,
+       since hover doesn't exist on touch).
+
+       Two more loose doodles (milky-3p-pee-puddle.png, milky-3p-poo.png
+       — cropped from 4K originals, same as everything else above) sit in
+       the wide empty margins either side of the centered column on
+       desktop, just scattered there per request rather than tied to any
+       specific word. .tcm-quote-deco is absolutely positioned against
+       .tcm-quote (now position:relative) and hidden under 1000px, where
+       those margins shrink to nothing and the images would otherwise sit
+       on top of the actual content. -->
   <section class="tcm-quote">
+    <img class="tcm-quote-deco tcm-quote-deco-puddle" src="assets/TheCast/Milky/milky-3p-pee-puddle.png" alt="" aria-hidden="true" loading="lazy">
+    <img class="tcm-quote-deco tcm-quote-deco-poo" src="assets/TheCast/Milky/milky-3p-poo.png" alt="" aria-hidden="true" loading="lazy">
+
     <div class="tcm-quote-inner">
-      <img class="tcm-quote-doodle reveal-text" src="assets/TheCast/Milky/milky-portrait.png" alt="Milky doodle (placeholder)" width="579" height="631" loading="lazy">
+      <video class="tcm-quote-doodle reveal-text" src="assets/TheCast/Milky/milky-wag-tail.mp4" muted loop playsinline preload="metadata" aria-hidden="true"></video>
       <p class="tcm-quote-text reveal-text" data-scrawl>
         <span class="tcm-quote-line1">To Milky, life is all about the <span class="tcm-quote-accent">3 P&rsquo;s<svg class="tcm-quote-underline" viewBox="0 0 160 24" aria-hidden="true"><path d="M4 16 C 40 24, 90 2, 156 12" /></svg></span>&hellip;</span><br>Pee. Poo. Pet my head.
       </p>
     </div>
+
+    <img class="tcm-pet-cursor" src="assets/TheCast/Milky/milky-pet-palm.png" alt="" aria-hidden="true">
 
     <div class="tcm-bits">
       <p class="tcm-eyebrow reveal-text">Milky is Known For</p>
@@ -212,30 +311,30 @@
         <button type="button" class="tcm-bit reveal-text" aria-pressed="false">
           <span class="tcm-bit-inner">
             <span class="tcm-bit-face tcm-bit-face-front">
-              <img src="assets/TheCast/Milky/milky-portrait.png" alt="Illustration of Milky's surprise feces attacks (placeholder)" width="579" height="631" loading="lazy">
-            </span>
-            <span class="tcm-bit-face tcm-bit-face-back">
               <span class="tcm-bit-label">Unexpected Feces Attacks</span>
             </span>
+            <span class="tcm-bit-face tcm-bit-face-back">
+              <img src="assets/TheCast/Milky/milky-bit-feces.png" alt="Illustration of Milky's surprise feces attack" width="700" height="700" loading="lazy">
+            </span>
           </span>
         </button>
         <button type="button" class="tcm-bit reveal-text" aria-pressed="false">
           <span class="tcm-bit-inner">
             <span class="tcm-bit-face tcm-bit-face-front">
-              <img src="assets/TheCast/Milky/milky-portrait.png" alt="Illustration of Milky's fart-in-your-face ambush (placeholder)" width="579" height="631" loading="lazy">
-            </span>
-            <span class="tcm-bit-face tcm-bit-face-back">
               <span class="tcm-bit-label">Fart-in-Your-Face Ambush</span>
             </span>
+            <span class="tcm-bit-face tcm-bit-face-back">
+              <img src="assets/TheCast/Milky/milky-bit-fart.png" alt="Illustration of Milky's fart-in-your-face ambush" width="700" height="700" loading="lazy">
+            </span>
           </span>
         </button>
         <button type="button" class="tcm-bit reveal-text" aria-pressed="false">
           <span class="tcm-bit-inner">
             <span class="tcm-bit-face tcm-bit-face-front">
-              <img src="assets/TheCast/Milky/milky-portrait.png" alt="Illustration of one of Milky's pranks (placeholder)" width="579" height="631" loading="lazy">
+              <span class="tcm-bit-label">Pranks That Make You Go &ldquo;Ew&rdquo; or &ldquo;Haha Funny&rdquo;</span>
             </span>
             <span class="tcm-bit-face tcm-bit-face-back">
-              <span class="tcm-bit-label">Pranks That Make You Go &ldquo;Ew&rdquo; or &ldquo;Haha Funny&rdquo;</span>
+              <img src="assets/TheCast/Milky/milky-bit-prank.png" alt="Illustration of one of Milky's pranks" width="700" height="700" loading="lazy">
             </span>
           </span>
         </button>
@@ -312,6 +411,6 @@
     </div>
   </footer>
 
-  <script src="js/the-cast-milky.js?v=2"></script>
+  <script src="js/the-cast-milky.js?v=3"></script>
 </body>
 </html>
